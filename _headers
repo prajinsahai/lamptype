@@ -1,0 +1,46 @@
+# Security and caching headers for Netlify and Cloudflare Pages.
+# Vercel users: the same policy is in vercel.json.
+# nginx/Apache users: see the "Deploying" section of README.md.
+#
+# NOTE ON THE CSP: AdSense injects inline script and pulls from several
+# Google hosts, so 'unsafe-inline' is unavoidable here. That is a real
+# weakening, and it is tolerable only because this site renders no
+# user-supplied content as HTML - every string reaching the DOM goes in
+# via textContent. Re-audit this if that ever stops being true.
+# Ship it as Content-Security-Policy-Report-Only first if you want to
+# watch for breakage before enforcing.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.googletagservices.com https://adservice.google.com https://fundingchoicesmessages.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com; connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com; font-src 'self'; manifest-src 'self'
+
+# Hashed or rarely-changing assets. The HTML itself must not be cached
+# hard, or visitors keep an old page after you deploy.
+/css/*
+  Cache-Control: public, max-age=604800
+
+/js/*
+  Cache-Control: public, max-age=604800
+
+/*.png
+  Cache-Control: public, max-age=2592000
+
+/*.ico
+  Cache-Control: public, max-age=2592000
+
+/*.svg
+  Cache-Control: public, max-age=2592000
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/ads.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=utf-8
+
+/.well-known/security.txt
+  Content-Type: text/plain; charset=utf-8

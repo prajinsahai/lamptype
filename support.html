@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lamp">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support &mdash; LampType</title>
+<meta name="description" content="Get help with LampType, report a bug, or find out how to delete the data it keeps on your device.">
+<link rel="canonical" href="https://lamptype.example/support.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LampType">
+<meta property="og:title" content="Support &mdash; LampType">
+<meta property="og:description" content="Get help with LampType, report a bug, or find out how to delete the data it keeps on your device.">
+<meta property="og:url" content="https://lamptype.example/support.html">
+<meta property="og:image" content="https://lamptype.example/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0e0f13">
+
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/sakura.css">
+<link rel="stylesheet" href="css/page.css">
+
+<script>
+/* Apply the saved theme before first paint, so moving between the test and
+   these pages never flashes the wrong palette. Deliberately inline and
+   deliberately tiny - a document should not need the app's JavaScript. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('tt:settings') || '{}');
+    var root = document.documentElement;
+    if (s.theme) root.setAttribute('data-theme', s.theme);
+    if (s.colorMode && s.colorMode !== 'auto') root.setAttribute('data-mode', s.colorMode);
+  } catch (e) { /* private browsing, storage disabled: keep the default */ }
+})();
+</script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to the content</a>
+
+<div class="app page">
+
+  <header class="top">
+    <p class="brand-title"><a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">&#9679;</span>
+      <span class="brand-name brand-default">LampType</span>
+      <span class="brand-name brand-sakura">Cherry Blossoms</span>
+    </a></p>
+    <nav class="top-nav" aria-label="Site">
+      <a class="text-btn" href="about.html">About</a>
+      <a class="text-btn" href="privacy.html">Privacy</a>
+      <a class="text-btn" href="terms.html">Terms</a>
+      <a class="text-btn" href="support.html">Support</a>
+    </nav>
+  </header>
+
+  <main class="page-body" id="content">
+
+    <h1 class="page-title">Support</h1>
+    <p class="page-updated">Questions, bugs and anything that looks wrong.</p>
+
+    <div class="callout todo">
+      <p><strong>Before launch:</strong> replace <code>TODO-SUPPORT-EMAIL</code>
+        everywhere on this page and in <code>.well-known/security.txt</code> with a real
+        address that reaches you. An address that works is a legal requirement once ads
+        are running, not just a courtesy.</p>
+    </div>
+
+    <h2>Get in touch</h2>
+    <p>Email <strong>TODO-SUPPORT-EMAIL</strong>. That address covers everything: bug
+      reports, accessibility problems, privacy requests and general questions. Expect a
+      reply within a few days.</p>
+    <p>If you are reporting a security issue, see
+      <a href="/.well-known/security.txt">security.txt</a> first.</p>
+
+    <h2>Common questions</h2>
+
+    <h3>My history disappeared</h3>
+    <p>Results are stored in your browser, not on a server. They are lost if you clear
+      site data, use a private window, switch browsers or switch devices. There is no
+      copy anywhere else, so there is nothing we can restore &mdash; that is the
+      trade-off for a site with no accounts.</p>
+
+    <h3>How do I delete everything LampType has stored?</h3>
+    <p>Open the history panel and choose <strong>Clear history</strong>. That removes
+      your results, your personal bests and your race count immediately. To clear the
+      remaining preference (your theme and mode settings) as well, clear site data for
+      this domain in your browser settings. Nothing is kept anywhere else, so once it is
+      gone from your device it is gone.</p>
+
+    <h3>My score seems wrong</h3>
+    <p>The formulas are spelled out on the <a href="about.html">about page</a>. The two
+      that surprise people most: accuracy counts every keystroke you ever made, so a
+      mistake you corrected still costs you; and the space closing a correctly typed
+      word counts toward your WPM.</p>
+
+    <h3>I can't get out of the typing area with the keyboard</h3>
+    <p>Press <kbd>shift</kbd>+<kbd>tab</kbd>. Plain <kbd>tab</kbd> is reserved for
+      restarting the test, which is the convention typing tests use.</p>
+
+    <h3>The background is distracting</h3>
+    <p>Switch to any theme other than <em>lava lamp</em> from the picker in the header
+      &mdash; <em>paper</em>, <em>ink</em>, <em>linen</em>, <em>oxide</em> and
+      <em>iris</em> have no animated backdrop at all. Turning on
+      <em>reduce motion</em> in your operating system also stills it.</p>
+
+    <h3>Is there an app?</h3>
+    <p>No, but the site can be installed to your home screen from most mobile browsers
+      and works offline once loaded. It is designed for a physical keyboard.</p>
+
+    <h2>Reporting a bug</h2>
+    <p>The more of this you can include, the faster it gets fixed:</p>
+    <ul>
+      <li>Your browser and operating system, with versions.</li>
+      <li>The mode and settings you were using (for example &ldquo;1 word, 30s,
+        punctuation on&rdquo;).</li>
+      <li>What you expected to happen, and what happened instead.</li>
+      <li>Anything red in the browser console, if you know how to open it.</li>
+    </ul>
+
+    <h2>Privacy requests</h2>
+    <p>Because there are no accounts and no server, we hold nothing about you to look
+      up, export or erase &mdash; your data is on your own device and the button above
+      deletes it. If you want to exercise a data protection right against the
+      advertising side of the site, the <a href="privacy.html">privacy policy</a>
+      explains what is collected and by whom, and email us at the address above if you
+      would like help with it.</p>
+
+    <a class="back-link" href="index.html">&larr; Back to the typing test</a>
+  </main>
+
+  <footer class="bottom">
+    <p class="bottom-claim">
+      Your keystrokes and your results never leave this browser. Ads on this
+      page are served by Google, which does set cookies &mdash;
+      <a href="privacy.html">what that means</a>.
+    </p>
+    <nav class="bottom-nav" aria-label="Site">
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+    </nav>
+  </footer>
+</div>
+
+</body>
+</html>

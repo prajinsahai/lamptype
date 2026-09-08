@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BEFORE LAUNCH: replace lamptype.example with your real domain, and set
+     <lastmod> to the date you actually publish. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://lamptype.example/</loc>
+    <lastmod>2026-09-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://lamptype.example/about.html</loc>
+    <lastmod>2026-09-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lamptype.example/support.html</loc>
+    <lastmod>2026-09-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://lamptype.example/privacy.html</loc>
+    <lastmod>2026-09-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://lamptype.example/terms.html</loc>
+    <lastmod>2026-09-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

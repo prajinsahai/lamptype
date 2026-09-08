@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lamp">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About &mdash; LampType</title>
+<meta name="description" content="What LampType is, how it measures your typing, and why nothing you type ever leaves your browser.">
+<link rel="canonical" href="https://lamptype.example/about.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LampType">
+<meta property="og:title" content="About &mdash; LampType">
+<meta property="og:description" content="What LampType is, how it measures your typing, and why nothing you type ever leaves your browser.">
+<meta property="og:url" content="https://lamptype.example/about.html">
+<meta property="og:image" content="https://lamptype.example/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0e0f13">
+
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/sakura.css">
+<link rel="stylesheet" href="css/page.css">
+
+<script>
+/* Apply the saved theme before first paint, so moving between the test and
+   these pages never flashes the wrong palette. Deliberately inline and
+   deliberately tiny - a document should not need the app's JavaScript. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('tt:settings') || '{}');
+    var root = document.documentElement;
+    if (s.theme) root.setAttribute('data-theme', s.theme);
+    if (s.colorMode && s.colorMode !== 'auto') root.setAttribute('data-mode', s.colorMode);
+  } catch (e) { /* private browsing, storage disabled: keep the default */ }
+})();
+</script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to the content</a>
+
+<div class="app page">
+
+  <header class="top">
+    <p class="brand-title"><a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">&#9679;</span>
+      <span class="brand-name brand-default">LampType</span>
+      <span class="brand-name brand-sakura">Cherry Blossoms</span>
+    </a></p>
+    <nav class="top-nav" aria-label="Site">
+      <a class="text-btn" href="about.html">About</a>
+      <a class="text-btn" href="privacy.html">Privacy</a>
+      <a class="text-btn" href="terms.html">Terms</a>
+      <a class="text-btn" href="support.html">Support</a>
+    </nav>
+  </header>
+
+  <main class="page-body" id="content">
+
+    <h1 class="page-title">About LampType</h1>
+    <p class="page-updated">A typing test that stays out of your way.</p>
+
+    <p>LampType is a typing speed test. You type the words you see, and it tells you
+      how fast and how accurately you did it. There is no account, no sign-up and
+      nothing to install.</p>
+
+    <p>Behind the words is a lava lamp. It drifts on its own, and it answers your
+      typing &mdash; the blobs lift and swell as you go, and the whole field warms up
+      the faster you type. It is meant to be noticed out of the corner of your eye and
+      never to pull you off the line you are typing.</p>
+
+    <h2>The three modes</h2>
+    <table class="page-table">
+      <thead><tr><th>Mode</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Time</strong></td>
+            <td>Type for a fixed 15, 30, 60 or 120 seconds. The passage refills, so you
+                can never run out of words.</td></tr>
+        <tr><td><strong>Words</strong></td>
+            <td>Type a fixed 10, 25, 50 or 100 words. It ends the moment you finish the
+                last one &mdash; no trailing space needed.</td></tr>
+        <tr><td><strong>1 word</strong></td>
+            <td>A timed run showing one word at a time. Finish the word and the next
+                one appears on its own; there is no space to press and no way to read
+                ahead. Every word is a cold start.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Any mode can add punctuation and numbers. There is also a race mode, where you
+      type against an AI opponent that calibrates to your recent speed: random for your
+      first five races, then matched to your average and ramping gently from there.</p>
+
+    <h2>How the numbers are worked out</h2>
+    <p>These are the standard definitions, the same ones most typing tests use, so your
+      score here is comparable to your score elsewhere.</p>
+    <ul>
+      <li><strong>WPM</strong> &mdash; correctly typed characters divided by five, then
+        divided by the minutes elapsed. A &ldquo;word&rdquo; is five characters by
+        convention, and the space that closes a correctly typed word counts as one of
+        them.</li>
+      <li><strong>Raw</strong> &mdash; the same sum over <em>every</em> character you
+        typed, right or wrong. Raw is always at or above your WPM.</li>
+      <li><strong>Accuracy</strong> &mdash; a running tally of keystrokes, not a
+        comparison of the final text. A mistake you go back and fix still costs you
+        accuracy, because you still made it.</li>
+      <li><strong>Consistency</strong> &mdash; how even your pace was, from the
+        per-second raw speed. A flat run scores near 100; a run of bursts and pauses
+        scores lower.</li>
+    </ul>
+    <p>Runs shorter than one second are shown but never recorded, because a handful of
+      characters divided by a sliver of a second is arithmetic noise rather than a
+      score.</p>
+
+    <h2>Your typing never leaves your browser</h2>
+    <p>Every keystroke is processed on your own machine. Nothing you type is sent
+      anywhere &mdash; not to us, not to anyone. Your results are kept in your
+      browser's local storage so your history and personal bests survive a reload, and
+      you can erase all of it at any time from the history panel.</p>
+    <p>The one thing that does reach a third party is advertising. The
+      <a href="privacy.html">privacy policy</a> sets out exactly what that involves.</p>
+
+    <h2>Accessibility</h2>
+    <p>The test is built to be driven entirely from the keyboard, and the interface
+      aims at WCAG 2.1 AA. Typed text is well clear of the AA contrast threshold in
+      every theme, including over the brightest part of the lava lamp. If you set
+      <code>prefers-reduced-motion</code> in your operating system, the lamp holds a
+      single still frame and the petals stop falling.</p>
+    <p>Because <kbd>tab</kbd> restarts the test, use <kbd>shift</kbd>+<kbd>tab</kbd> to
+      move focus out of the typing area. If something here does not work with your
+      assistive technology, please <a href="support.html">tell us</a> &mdash; it will
+      be treated as a bug.</p>
+
+    <a class="back-link" href="index.html">&larr; Back to the typing test</a>
+  </main>
+
+  <footer class="bottom">
+    <p class="bottom-claim">
+      Your keystrokes and your results never leave this browser. Ads on this
+      page are served by Google, which does set cookies &mdash;
+      <a href="privacy.html">what that means</a>.
+    </p>
+    <nav class="bottom-nav" aria-label="Site">
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+    </nav>
+  </footer>
+</div>
+
+</body>
+</html>

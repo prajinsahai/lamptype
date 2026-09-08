@@ -1,0 +1,8 @@
+# LampType security contact (RFC 9116)
+# BEFORE LAUNCH: set a real address and push Expires out to ~a year ahead.
+# Expires must be a future date or scanners will treat this file as stale.
+
+Contact: mailto:TODO-SUPPORT-EMAIL
+Expires: 2027-09-09T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://lamptype.example/.well-known/security.txt

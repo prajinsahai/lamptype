@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lamp">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy &mdash; LampType</title>
+<meta name="description" content="What LampType stores on your device, what Google's advertising collects, and how to control both.">
+<link rel="canonical" href="https://lamptype.example/privacy.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LampType">
+<meta property="og:title" content="Privacy &mdash; LampType">
+<meta property="og:description" content="What LampType stores on your device, what Google's advertising collects, and how to control both.">
+<meta property="og:url" content="https://lamptype.example/privacy.html">
+<meta property="og:image" content="https://lamptype.example/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0e0f13">
+
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/sakura.css">
+<link rel="stylesheet" href="css/page.css">
+
+<script>
+/* Apply the saved theme before first paint, so moving between the test and
+   these pages never flashes the wrong palette. Deliberately inline and
+   deliberately tiny - a document should not need the app's JavaScript. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('tt:settings') || '{}');
+    var root = document.documentElement;
+    if (s.theme) root.setAttribute('data-theme', s.theme);
+    if (s.colorMode && s.colorMode !== 'auto') root.setAttribute('data-mode', s.colorMode);
+  } catch (e) { /* private browsing, storage disabled: keep the default */ }
+})();
+</script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to the content</a>
+
+<div class="app page">
+
+  <header class="top">
+    <p class="brand-title"><a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">&#9679;</span>
+      <span class="brand-name brand-default">LampType</span>
+      <span class="brand-name brand-sakura">Cherry Blossoms</span>
+    </a></p>
+    <nav class="top-nav" aria-label="Site">
+      <a class="text-btn" href="about.html">About</a>
+      <a class="text-btn" href="privacy.html">Privacy</a>
+      <a class="text-btn" href="terms.html">Terms</a>
+      <a class="text-btn" href="support.html">Support</a>
+    </nav>
+  </header>
+
+  <main class="page-body" id="content">
+
+    <h1 class="page-title">Privacy policy</h1>
+    <p class="page-updated">Last updated: TODO-EFFECTIVE-DATE</p>
+
+    <div class="callout todo">
+      <p><strong>Before launch, fill in:</strong> <code>TODO-EFFECTIVE-DATE</code>,
+        <code>TODO-PUBLISHER-NAME</code>, <code>TODO-SUPPORT-EMAIL</code> and
+        <code>TODO-COUNTRY</code>. If you publish an <em>Impressum</em> for
+        German-speaking visitors, a postal address goes in &ldquo;Who runs this
+        site&rdquo; as well. Have a lawyer read this before you rely on it.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>The short version.</strong> Nothing you type is ever transmitted. Every
+        keystroke is processed on your own device, and your results are saved only in
+        your own browser. There are no accounts and no server holding your data.</p>
+      <p>The exception is advertising. This site carries ads served by Google, and
+        Google does set cookies and receive technical data such as your IP address.
+        Most of what follows is about that.</p>
+    </div>
+
+    <h2>Who runs this site</h2>
+    <p>LampType is operated by <strong>TODO-PUBLISHER-NAME</strong>. For anything to do
+      with privacy, write to <strong>TODO-SUPPORT-EMAIL</strong>. We are the data
+      controller for the processing described here.</p>
+
+    <h2>What stays on your device</h2>
+    <p>LampType uses your browser's local storage. This is not a cookie and is never
+      transmitted &mdash; it is a small amount of data kept on your machine so the site
+      remembers your settings and results between visits.</p>
+    <table class="page-table">
+      <thead><tr><th>Key</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><code>tt:settings</code></td>
+            <td>Your mode, test length, punctuation and numbers toggles, theme and
+                light/dark preference.</td></tr>
+        <tr><td><code>tt:history</code></td>
+            <td>Your last 50 results: speed, accuracy, consistency, character counts,
+                the mode used and a timestamp. Personal bests are derived from this list
+                rather than stored separately.</td></tr>
+        <tr><td><code>tt:races</code></td>
+            <td>How many races you have finished, used to calibrate the AI opponent.</td></tr>
+      </tbody>
+    </table>
+    <p>None of this is sent anywhere and none of it identifies you. You can erase all of
+      it at any time with <strong>Clear history</strong> in the history panel, or by
+      clearing site data in your browser.</p>
+
+    <h2>What we do not collect</h2>
+    <ul>
+      <li><strong>The text you type.</strong> It is compared against the target words in
+        your browser and then discarded. It is never uploaded, logged or stored.</li>
+      <li><strong>Accounts.</strong> There is no sign-up, so no name, email or password.</li>
+      <li><strong>Analytics.</strong> This site runs no analytics or tracking scripts of
+        its own.</li>
+    </ul>
+
+    <h2>Advertising</h2>
+    <p>This site shows ads through <strong>Google AdSense</strong>. To do that, Google
+      and its partners may place and read cookies on your browser, or use web beacons,
+      device identifiers and your IP address, to select and measure the ads you see.</p>
+    <ul>
+      <li>Third-party vendors, <strong>including Google, use cookies to serve ads based
+        on your prior visits to this site or other sites</strong>.</li>
+      <li>Google's use of advertising cookies lets it and its partners serve ads to you
+        based on your visits to this and other sites on the internet.</li>
+      <li>You may opt out of personalised advertising in
+        <a href="https://www.google.com/settings/ads" rel="noopener">Google's Ads
+        Settings</a>, or opt out of third-party cookies from participating vendors at
+        <a href="https://www.aboutads.info/choices/" rel="noopener">aboutads.info</a>
+        and, in Europe,
+        <a href="https://www.youronlinechoices.eu/" rel="noopener">Your Online
+        Choices</a>.</li>
+      <li>How Google handles data from sites that use its services is set out at
+        <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">policies.google.com/technologies/partner-sites</a>.</li>
+    </ul>
+    <p>We never receive and cannot see the data Google collects. We see only aggregate
+      earnings reports, which say nothing about individual visitors.</p>
+
+    <h2>Consent, if you are in Europe</h2>
+    <p>If you are in the European Economic Area, the United Kingdom or Switzerland you
+      will be asked for consent before any advertising cookie is set, through a consent
+      management platform certified by Google under the IAB Transparency and Consent
+      Framework. You may refuse, in which case you will see non-personalised ads, and you
+      can change your answer at any time using the link the consent tool leaves on the
+      page.</p>
+    <p>The settings and history described above do not depend on that consent. They are
+      strictly necessary for a feature you asked for, they stay on your device, and they
+      are never used for advertising.</p>
+
+    <h2>Legal bases</h2>
+    <p>Where the UK or EU GDPR applies we rely on <strong>consent</strong> for
+      advertising and any non-essential storage, and on our <strong>legitimate
+      interest</strong> in operating and securing the site for the strictly necessary
+      storage that makes the test work.</p>
+
+    <h2>Your rights</h2>
+    <p>Depending on where you live you may have the right to access, correct, delete,
+      restrict or object to the processing of your personal data, to withdraw consent,
+      and to complain to your data protection authority.</p>
+    <p>In practice we hold nothing about you to hand over: there is no account and no
+      server-side record. Your data is on your own device and you delete it yourself with
+      <strong>Clear history</strong>. For the advertising side, use the Google controls
+      linked above, or write to us and we will help.</p>
+
+    <h2>Children</h2>
+    <p>LampType is not directed at children under 13 and we do not knowingly collect
+      personal information from them. If you believe a child has provided personal
+      information through this site, contact us and we will delete it. Where a visitor's
+      age is unknown, ad requests are configured to suppress personalised advertising.</p>
+
+    <h2>Transfers and retention</h2>
+    <p>Because your results never leave your device there is no transfer of them
+      anywhere. Google operates globally and may process advertising data outside your
+      country under its own safeguards, described in the policies linked above. Your
+      local data is kept until you delete it; history is capped at the 50 most recent
+      results and older entries fall off automatically.</p>
+
+    <h2>Security</h2>
+    <p>The site is served over HTTPS. Because it holds no accounts and no server-side
+      personal data, there is no central store of user data to breach.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes materially we will update the date at the top and note
+      significant changes on the site. Continuing to use LampType after a change means
+      you accept the updated policy.</p>
+
+    <h2>Contact</h2>
+    <p><strong>TODO-PUBLISHER-NAME</strong> &middot; <strong>TODO-SUPPORT-EMAIL</strong>
+      &middot; TODO-COUNTRY</p>
+
+    <a class="back-link" href="index.html">&larr; Back to the typing test</a>
+  </main>
+
+  <footer class="bottom">
+    <p class="bottom-claim">
+      Your keystrokes and your results never leave this browser. Ads on this
+      page are served by Google, which does set cookies &mdash;
+      <a href="privacy.html">what that means</a>.
+    </p>
+    <nav class="bottom-nav" aria-label="Site">
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+    </nav>
+  </footer>
+</div>
+
+</body>
+</html>

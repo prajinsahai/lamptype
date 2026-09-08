@@ -1,0 +1,12 @@
+# LampType — authorised digital sellers (IAB ads.txt)
+#
+# BEFORE LAUNCH, AND BEFORE YOU EXPECT ANY REVENUE:
+# Replace pub-0000000000000000 with your own AdSense publisher ID. Find it in
+# AdSense under Account -> Settings -> Account information; it looks like
+# "pub-1234567890123456". AdSense also shows you the exact line to paste under
+# Sites -> Ads.txt.
+#
+# Without a correct line here most programmatic buyers will refuse to bid on
+# this site and revenue quietly collapses, with no error shown anywhere.
+
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

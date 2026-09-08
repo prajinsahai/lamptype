@@ -1,0 +1,113 @@
+/* ---------------------------------------------------------------
+   Theme palettes.
+
+   Every theme defines the same nine variables; nothing else in the
+   stylesheet hardcodes a colour. `data-theme` lives on <html> so the
+   swap is a single attribute change.
+
+   --bg          page ground
+   --sub-alt     raised surface (history cards, chart grid, ad box)
+   --rule        hairline rules, the backbone of the layout
+   --sub         untyped text and quiet labels
+   --text        typed-and-correct letters, primary text
+   --main        accent: active setting, wpm, caret, chart line
+   --caret       caret colour (usually the accent)
+   --error       incorrect letters and error markers
+   --error-extra letters typed past the end of a word
+
+   Each theme owns one hue and spends it sparingly. Typed text against
+   the ground clears WCAG AA at every size in all of them.
+
+   `lamp` additionally defines --lamp-* for the backdrop canvas.
+   --------------------------------------------------------------- */
+
+/* --- lamp: the default. A dark liquid ground for the lava lamp
+       backdrop, with the lamp's own amber as the accent. The --lamp-*
+       variables drive the canvas in js/lamp.js. ------------------- */
+:root,
+[data-theme="lamp"] {
+  --bg:          #0e0f13;
+  --sub-alt:     #171922;
+  --rule:        #242835;
+  /* Brighter than the other themes' untyped grey: the backdrop lightens
+     the ground under it, and the words still have to be readable there. */
+  --sub:         #6b7186;
+  --text:        #ecebf1;
+  --main:        #f0894a;
+  --caret:       #f0894a;
+  --error:       #e4635f;
+  --error-extra: #7d3733;
+
+  --lamp-a:         #ff7a3c;
+  --lamp-b:         #e0456f;
+  --lamp-alpha-min: .10;
+  --lamp-alpha-max: .17;
+  --lamp-blur:      17px;
+}
+
+/* --- paper: warm off-white stock, ink, one deep green ------------- */
+[data-theme="paper"] {
+  --bg:          #f6f3ed;
+  --sub-alt:     #eae5da;
+  --rule:        #dcd5c7;
+  --sub:         #a79e8d;
+  --text:        #1e1b17;
+  --main:        #1f5d4c;
+  --caret:       #1f5d4c;
+  --error:       #b0281f;
+  --error-extra: #c9938c;
+}
+
+/* --- ink: cold near-black, bone text, steel blue ------------------ */
+[data-theme="ink"] {
+  --bg:          #131417;
+  --sub-alt:     #1a1c20;
+  --rule:        #262930;
+  --sub:         #565b66;
+  --text:        #e9e7e1;
+  --main:        #7fa6cc;
+  --caret:       #7fa6cc;
+  --error:       #d2635c;
+  --error-extra: #79322d;
+}
+
+/* --- linen: cool light grey, plum accent -------------------------- */
+[data-theme="linen"] {
+  --bg:          #efede7;
+  --sub-alt:     #e2dfd6;
+  --rule:        #d5d1c6;
+  --sub:         #9e9a8f;
+  --text:        #232120;
+  --main:        #6b3560;
+  --caret:       #6b3560;
+  --error:       #a32b2b;
+  --error-extra: #c09292;
+}
+
+/* --- oxide: dark warm brown, rust accent -------------------------- */
+[data-theme="oxide"] {
+  --bg:          #17130f;
+  --sub-alt:     #1f1a15;
+  --rule:        #2c2419;
+  --sub:         #665949;
+  --text:        #ede4d8;
+  --main:        #c4703c;
+  --caret:       #c4703c;
+  /* Lifted from #d0524a: the error colour is used on 11px labels too, and
+     the darker red came in at 4.39 against this ground - under AA. */
+  --error:       #d65b52;
+  --error-extra: #7e2e29;
+}
+
+/* --- iris: dark cool slate, muted violet -------------------------- */
+[data-theme="iris"] {
+  --bg:          #14151b;
+  --sub-alt:     #1b1d25;
+  --rule:        #272a36;
+  --sub:         #575c6c;
+  --text:        #e5e6ed;
+  --main:        #9b8ce0;
+  --caret:       #9b8ce0;
+  --error:       #e06a78;
+  --error-extra: #7e3540;
+}

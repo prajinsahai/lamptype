@@ -1,0 +1,873 @@
+/* =================================================================
+   style.css - layout and typography.
+
+   The page is set like a printed page: one centred measure, hairline
+   rules instead of boxes, a serif for the words themselves and a small
+   tracked sans for every label. Nothing is a card, nothing has a
+   shadow, and colour appears only where it means something.
+
+   All colour comes from the theme variables in themes.css.
+   ================================================================= */
+
+:root {
+  /* No webfonts: the page has to work offline and off a file:// URL,
+     so these are stacks of faces that ship with the OS. */
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino,
+                "Book Antiqua", Georgia, "Times New Roman", serif;
+  --font-sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:  ui-monospace, "Cascadia Mono", "SF Mono", Consolas,
+                "Liberation Mono", monospace;
+
+  --measure: 48rem;      /* the text column */
+  --gutter: 2rem;
+  --rule-w: 1px;
+
+  --ease: cubic-bezier(.22, .61, .36, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .35s ease, color .35s ease;
+}
+
+[hidden] { display: none !important; }
+
+/* Present to assistive tech, absent to everyone else. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Off-screen until it takes focus, then the first thing a keyboard user
+   lands on. */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -120%);
+  z-index: 50;
+  padding: .6rem 1rem;
+  background: var(--main);
+  color: var(--bg);
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  text-decoration: none;
+  transition: transform .18s var(--ease);
+}
+.skip-link:focus { transform: translate(-50%, 0); }
+
+/* ============================ lava lamp ============================
+   The backdrop canvas: fixed, behind everything, never interactive.
+   It is drawn at half resolution and blurred here, which is both
+   cheaper and softer than trying to paint the same edges by hand.
+   `.app` is promoted to its own stacking context in sakura.css, so
+   the page always sits above this. */
+
+.lamp-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(var(--lamp-blur, 26px));
+}
+
+button, select, input { font: inherit; color: inherit; }
+
+/* Small, uppercase, widely tracked: the voice of every label. */
+.field-label,
+.stat-label,
+.hint,
+.bottom,
+.ad-note,
+.race-label,
+.modal-sub {
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--sub);
+  font-weight: 500;
+}
+
+/* ================================ shell ================================ */
+
+.app {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 3.5rem var(--gutter) 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage { flex: 1 0 auto; }
+
+/* ============================== masthead ============================== */
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: .85rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+/* The wordmark is the page's h1; it must not inherit heading metrics. */
+.brand-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .55rem;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.brand-mark {
+  font-size: .5rem;
+  color: var(--main);
+  transform: translateY(-.35em);
+}
+
+/* The wordmark keeps its own casing - LampType is a name, not a label,
+   and uppercasing it would flatten the hump in the middle. */
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: .04em;
+}
+
+.top-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+
+/* ============================== controls ============================== */
+
+.text-btn,
+.mode-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 500;
+  color: var(--sub);
+  transition: color .18s ease, opacity .3s ease;
+}
+
+/* The prose pages reuse .text-btn on real anchors; the masthead should
+   read the same there as it does on the test. */
+a.text-btn { text-decoration: none; }
+
+.text-btn:hover,
+.mode-btn:hover { color: var(--text); }
+
+.text-btn.danger:hover { color: var(--error); }
+
+.theme-select {
+  background: none;
+  border: 0;
+  border-bottom: var(--rule-w) solid transparent;
+  padding: 0 0 .15rem;
+  cursor: pointer;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 500;
+  color: var(--sub);
+  transition: color .18s ease, border-color .18s ease;
+}
+.theme-select:hover { color: var(--text); border-bottom-color: var(--rule); }
+.theme-select option { background: var(--bg); color: var(--text); }
+
+:focus-visible {
+  outline: var(--rule-w) solid var(--main);
+  outline-offset: 3px;
+}
+
+/* --- the settings line, set as a byline under the masthead --- */
+
+.mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* Row gap first: if the three fields ever do wrap, they should stay a
+     tight block rather than drifting apart. */
+  gap: .85rem 1.5rem;
+  padding: 1rem 0 .9rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+  transition: opacity .4s ease;
+}
+
+/* Out of the way while typing, back the moment you stop. */
+.mode-bar.dim { opacity: .25; }
+.mode-bar.dim:hover { opacity: 1; }
+
+.mode-field {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+}
+
+.mode-group {
+  display: flex;
+  align-items: baseline;
+  gap: .9rem;
+}
+
+/* The active choice is marked by a rule that draws itself in from the
+   left, rather than by a pill or a fill. */
+.mode-btn {
+  position: relative;
+  padding-bottom: .3rem;
+  color: var(--sub);
+}
+
+.mode-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--main);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .22s var(--ease);
+}
+
+.mode-btn.active { color: var(--main); }
+.mode-btn.active::after { transform: scaleX(1); }
+
+.mode-sep { display: none; }
+
+/* ============================ the typing area ============================ */
+
+.typing-area {
+  position: relative;
+  margin: 2.75rem 0 0;
+  min-height: 11rem;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  transition: filter .25s ease, opacity .25s ease;
+}
+
+.words {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  width: 100%;
+  font-family: var(--font-serif);
+  font-size: 1.875rem;
+  line-height: 1.95;
+  transition: transform .18s var(--ease);
+  /* No fill mode: the final keyframe would otherwise keep overriding the
+     scroll transform this element carries. */
+  animation: words-in .34s var(--ease);
+}
+
+/* Re-runs on every rebuild: the renderer pokes the class off and on. */
+@keyframes words-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.word {
+  margin-right: .55ch;
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+}
+
+/* A word left behind with mistakes keeps a quiet mark under it. */
+.word.error { border-bottom-color: var(--error); }
+
+.letter {
+  color: var(--sub);
+  transition: color .12s ease;
+}
+.letter.correct   { color: var(--text); }
+.letter.incorrect { color: var(--error); }
+.letter.extra     { color: var(--error-extra); }
+
+/* --- 1 word: one word at a time, centred, the rest simply not shown --- */
+
+.words.single {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  letter-spacing: .01em;
+}
+
+.words.single .word { display: none; margin-right: 0; }
+.words.single .word.active { display: block; }
+
+/* The swap animates the container, not the word: a transform on the
+   word would turn it into the caret's containing block. */
+.words.single { animation: word-swap .2s var(--ease); }
+
+/* Each word rises into place as the last one is committed. */
+@keyframes word-swap {
+  from { opacity: 0; transform: translateY(.28em); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------- caret -------------------------------
+   A hairline that slides between characters and breathes rather than
+   blinking hard on and off. */
+
+.caret {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1.5px;
+  background: var(--caret);
+  transition: transform .09s var(--ease), height .09s var(--ease);
+  animation: caret-breathe 1.15s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes caret-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .12; }
+}
+
+/* Solid while keys are actually landing. */
+.caret.typing { animation: none; opacity: 1; }
+
+/* ---------------------------- focus overlay ---------------------------- */
+
+.typing-area.blurred .words { filter: blur(3px); opacity: .45; }
+.typing-area.blurred .caret { opacity: 0; animation: none; }
+
+.focus-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--sub);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.typing-area.blurred .focus-overlay { opacity: 1; }
+
+.hidden-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* ============================== live stats ==============================
+   Under the rule that closes the typing area: the clock, the speed, and
+   the two controls, all on one line. */
+
+.live-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 2.25rem;
+  margin-top: 0;
+  padding-top: .9rem;
+  border-top: var(--rule-w) solid var(--rule);
+  transition: opacity .4s ease;
+}
+
+.live-spacer { flex: 1 1 auto; }
+
+.live-cell {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+}
+
+.live-counter,
+.live-wpm {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--main);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+}
+
+.live-wpm { color: var(--text); }
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.icon-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--sub);
+  transition: color .18s ease, transform .3s var(--ease);
+}
+.icon-btn:hover { color: var(--main); transform: rotate(-90deg); }
+.icon-btn.small { font-size: .9rem; }
+.icon-btn.small:hover { transform: none; }
+
+.race-btn.racing { color: var(--main); }
+
+.hint {
+  margin: 1rem 0 0;
+  opacity: .75;
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: .625rem;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: .1rem .3rem;
+  border: var(--rule-w) solid var(--rule);
+  border-radius: 2px;
+  color: var(--sub);
+}
+
+/* ================================= race =================================
+   Two hairlines with a dot at the head of each: position along the text
+   and nothing else. */
+
+.race {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  margin-top: 1.5rem;
+}
+
+.race-lane {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 3rem;
+  align-items: center;
+  gap: .9rem;
+}
+
+.race-track {
+  position: relative;
+  height: 1px;
+  background: var(--rule);
+}
+
+.race-fill {
+  position: relative;
+  height: 1px;
+  width: 0;
+  background: var(--main);
+  transition: width .08s linear;
+}
+
+.race-fill::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: -2.5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.race-lane.opponent .race-fill { background: var(--sub); }
+.race-lane.done .race-label { color: var(--main); }
+
+.race-wpm {
+  text-align: right;
+  font-family: var(--font-serif);
+  font-size: .875rem;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================ results ================================ */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-top: 2.5rem;
+}
+
+/* The panel lifts in once, under the numbers settling. */
+.results:not([hidden]) { animation: view-in .3s var(--ease) both; }
+#view-test:not([hidden]) { animation: view-in .3s var(--ease) both; }
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.results-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 3rem;
+  padding-bottom: 1.25rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.stat-big { display: flex; flex-direction: column; gap: .5rem; }
+
+.stat-value {
+  font-family: var(--font-serif);
+  font-size: 4.5rem;
+  font-weight: 400;
+  line-height: .9;
+  color: var(--main);
+  /* Fixed-width digits: without these the numbers reflow on every frame
+     of the shuffle. */
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-big.secondary .stat-value {
+  font-size: 2.5rem;
+  color: var(--text);
+}
+
+.results-flags {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-left: auto;
+  align-items: flex-end;
+}
+
+.race-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .2rem;
+}
+
+.race-outcome {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  color: var(--main);
+}
+.race-result.lost .race-outcome { color: var(--sub); }
+
+.race-detail,
+.result-note {
+  margin: 0;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--sub);
+}
+
+.pb-badge {
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--main);
+  border-bottom: var(--rule-w) solid var(--main);
+  padding-bottom: .15rem;
+}
+
+.results-chart { min-width: 0; }
+#res-chart { display: block; width: 100%; height: 190px; }
+
+.results-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: var(--rule-w) solid var(--rule);
+}
+
+.stat-small { display: flex; flex-direction: column; gap: .45rem; }
+
+.stat-sub {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  color: var(--text);
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+.results-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.results-foot .hint { margin: 0; }
+
+/* ================================ ad slot ================================
+   The height is reserved whether or not anything fills it, so nothing
+   below moves when an ad arrives. */
+
+.ad-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  margin: 3rem 0 1.5rem;
+}
+
+/* Stays visible once a real ad fills the box below it. */
+.ad-label {
+  margin: 0;
+  font-size: .625rem;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: var(--sub);
+  opacity: .7;
+}
+
+.ad-inner {
+  width: 728px;
+  max-width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--rule-w) dashed var(--rule);
+}
+
+.ad-note { opacity: .6; }
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem 2rem;
+  padding-top: 1.25rem;
+  border-top: var(--rule-w) solid var(--rule);
+}
+
+/* This is a privacy disclosure, not decoration. It takes the full text
+   colour: --sub sits under 3:1 in several themes, and quietly greying out
+   the sentence that tells people about ad cookies is exactly the sort of
+   thing that should not be done. */
+.bottom-claim {
+  margin: 0;
+  max-width: 46ch;
+  font-size: .6875rem;
+  text-transform: none;
+  letter-spacing: .02em;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.bottom-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.bottom a,
+.bottom-claim a {
+  color: var(--main);
+  text-decoration-color: var(--rule);
+  text-underline-offset: .25em;
+  transition: color .18s ease, text-decoration-color .18s ease;
+}
+.bottom a:hover,
+.bottom-claim a:hover {
+  color: var(--main);
+  text-decoration-color: var(--main);
+}
+
+.bottom-nav a {
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  text-decoration: none;
+}
+
+/* ================================= modal ================================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gutter);
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: .92;
+}
+
+.modal-card {
+  position: relative;
+  width: min(46rem, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border: var(--rule-w) solid var(--rule);
+  padding: 2rem;
+  animation: view-in .25s var(--ease) both;
+}
+
+.modal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: .85rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.modal-sub { margin: 2rem 0 1rem; }
+
+.pb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.5rem;
+}
+
+.pb-card {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding-left: .9rem;
+  border-left: var(--rule-w) solid var(--rule);
+}
+
+.pb-mode,
+.pb-acc {
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--sub);
+}
+
+.pb-wpm {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--main);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-wrap { overflow-x: auto; }
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-table th {
+  text-align: left;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 500;
+  color: var(--sub);
+  padding: 0 1rem .6rem 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.history-table td {
+  padding: .6rem 1rem .6rem 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.history-table tbody tr:last-child td { border-bottom: 0; }
+.history-table td:first-child { color: var(--main); }
+
+.empty-row { color: var(--sub); }
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+}
+
+/* =============================== responsive =============================== */
+
+@media (max-width: 720px) {
+  .app { padding: 2.25rem 1.25rem 1.5rem; }
+  .top { flex-wrap: wrap; gap: .75rem; }
+  .mode-bar { gap: 1rem 1.25rem; }
+  .mode-field { flex-wrap: wrap; gap: .5rem .75rem; }
+  .words { font-size: 1.4rem; line-height: 1.9; }
+  .words.single { font-size: 2.25rem; }
+  .typing-area { min-height: 8.5rem; }
+  .stat-value { font-size: 3.25rem; }
+  .stat-big.secondary .stat-value { font-size: 2rem; }
+  .results-head { gap: 1.5rem; }
+  .live-bar { gap: 1.25rem; flex-wrap: wrap; }
+
+  /* A leaderboard does not fit: fall back to the mobile banner size. */
+  .ad-inner { width: 320px; height: 50px; }
+}
+
+/* ============================= reduced motion ============================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  .caret { animation: none; opacity: 1; }
+  .icon-btn:hover { transform: none; }
+}

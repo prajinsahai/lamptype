@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lamp">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LampType - self tests</title>
+<link rel="stylesheet" href="css/themes.css">
+<!-- sakura carries its own palette, so the theme check needs it too. -->
+<link rel="stylesheet" href="css/sakura.css">
+<style>
+  body {
+    margin: 0; padding: 2rem 1.5rem;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  .lede { color: var(--sub); margin: 0 0 1.5rem; }
+  .summary { padding: .75rem 1rem; border-radius: 8px; background: var(--sub-alt); margin-bottom: 1rem; }
+  .summary.pass { color: var(--main); }
+  .summary.fail { color: var(--error); }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: .35rem .5rem; border-bottom: 1px solid var(--sub-alt); vertical-align: top; }
+  td.status { width: 4rem; }
+  td.name { width: 45%; color: var(--text); }
+  td.msg { color: var(--sub); }
+  tr.ok td.status { color: var(--main); }
+  tr.bad td.status { color: var(--error); }
+  tr.bad td.msg { color: var(--error); }
+  a { color: var(--main); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LampType self tests</h1>
+  <p class="lede">
+    Assertions against the pure functions and the DOM-free engine.
+    <a href="index.html">back to the test</a>
+  </p>
+  <div id="summary" class="summary">running...</div>
+  <table><tbody id="rows"></tbody></table>
+</div>
+
+<script src="js/words.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/reveal.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/lamp.js"></script>
+<script src="js/petals.js"></script>
+<script src="js/race.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const results = [];
+
+  function check(name, fn) {
+    try {
+      const msg = fn();
+      results.push({ name, ok: true, msg: msg || '' });
+    } catch (err) {
+      results.push({ name, ok: false, msg: err && err.message ? err.message : String(err) });
+    }
+  }
+
+  function assert(cond, msg) {
+    if (!cond) throw new Error(msg || 'assertion failed');
+  }
+
+  function eq(actual, expected, label) {
+    if (actual !== expected) {
+      throw new Error((label ? label + ': ' : '') +
+        'expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+    }
+  }
+
+  function near(actual, expected, tol, label) {
+    if (!(Math.abs(actual - expected) <= tol)) {
+      throw new Error((label ? label + ': ' : '') +
+        'expected ~' + expected + ' (+/-' + tol + '), got ' + actual);
+    }
+  }
+
+  const S = TT.stats;
+
+  /* ------------------------------- wpm / raw ------------------------------- */
+
+  check('wpm: 250 correct characters in 60s is 50 wpm', () => {
+    eq(S.wpm(250, 60), 50);
+  });
+
+  check('wpm: 125 correct characters in 30s is 50 wpm', () => {
+    eq(S.wpm(125, 30), 50);
+  });
+
+  check('wpm: zero elapsed time yields 0, not Infinity or NaN', () => {
+    eq(S.wpm(100, 0), 0);
+    eq(S.wpm(0, 0), 0);
+  });
+
+  check('raw: counts every typed character, correct or not', () => {
+    eq(S.raw(300, 30), 120);
+    eq(S.raw(50, 0), 0);
+  });
+
+  /* ------------------------------- accuracy ------------------------------- */
+
+  check('accuracy: 90 correct of 100 keystrokes is 90%', () => {
+    eq(S.accuracy(90, 10), 90);
+  });
+
+  check('accuracy: no keystrokes yet reads 100%, not 0%', () => {
+    eq(S.accuracy(0, 0), 100);
+  });
+
+  /* ------------------------------ consistency ------------------------------ */
+
+  check('consistency: a perfectly flat series scores 100', () => {
+    eq(S.consistency([60, 60, 60, 60]), 100);
+  });
+
+  check('consistency: a spiky series scores well below a flat one', () => {
+    const spiky = S.consistency([10, 90, 10, 90]);
+    assert(spiky < 60, 'spiky series should drop below 60, got ' + spiky);
+    assert(spiky > 0, 'spiky series should stay above 0, got ' + spiky);
+  });
+
+  check('consistency: fewer than two samples is 100', () => {
+    eq(S.consistency([]), 100);
+    eq(S.consistency([42]), 100);
+  });
+
+  check('consistency: an all-zero series is 0, not NaN', () => {
+    eq(S.consistency([0, 0, 0]), 0);
+  });
+
+  /* ------------------------------ countChars ------------------------------ */
+
+  check('countChars: a flawless two-word run counts the space as correct', () => {
+    const c = S.countChars(['the', 'cat'], ['the', 'cat'], 1);
+    eq(c.correct, 6, 'correct');
+    eq(c.incorrect, 0, 'incorrect');
+    eq(c.extra, 0, 'extra');
+    eq(c.missed, 0, 'missed');
+    eq(c.correctWithSpaces, 7, 'correctWithSpaces');
+    eq(c.typedTotal, 7, 'typedTotal');
+  });
+
+  check('countChars: a wrong letter is incorrect, the rest still correct', () => {
+    const c = S.countChars(['the'], ['tha'], 0);
+    eq(c.correct, 2, 'correct');
+    eq(c.incorrect, 1, 'incorrect');
+  });
+
+  check('countChars: characters past the end of a word are extra', () => {
+    const c = S.countChars(['the'], ['thexx'], 0);
+    eq(c.correct, 3, 'correct');
+    eq(c.extra, 2, 'extra');
+    eq(c.incorrect, 0, 'incorrect');
+  });
+
+  check('countChars: a word skipped with space leaves missed characters', () => {
+    const c = S.countChars(['hello', 'world'], ['hel', 'world'], 1);
+    eq(c.missed, 2, 'missed');
+    /* The skipped word was wrong, so its separator must not be credited. */
+    eq(c.correctWithSpaces, c.correct, 'no separator credit for a wrong word');
+  });
+
+  check('countChars: the unfinished current word is not counted as missed', () => {
+    const c = S.countChars(['hello'], ['hel'], 0);
+    eq(c.missed, 0, 'missed');
+    eq(c.correct, 3, 'correct');
+  });
+
+  check('countChars: an empty run produces all zeros', () => {
+    const c = S.countChars(['hello'], [''], 0);
+    eq(c.correct, 0);
+    eq(c.incorrect, 0);
+    eq(c.missed, 0);
+    eq(c.typedTotal, 0);
+  });
+
+  check('accuracy reflects corrected mistakes; the final text does not', () => {
+    /* Typed "t", "h", "s" (wrong), backspace, "e": 3 right, 1 wrong. */
+    const keystrokes = { correct: 3, incorrect: 1 };
+    eq(S.accuracy(keystrokes.correct, keystrokes.incorrect), 75);
+
+    /* The same run inspected only through its final text looks perfect,
+       which is exactly why accuracy is tallied per keystroke instead. */
+    const c = S.countChars(['the'], ['the'], 0);
+    eq(c.incorrect, 0, 'final text shows no error');
+  });
+
+  /* -------------------------------- words -------------------------------- */
+
+  check('generate: returns exactly the requested number of words', () => {
+    eq(TT.words.generate(25).length, 25);
+    eq(TT.words.generate(1).length, 1);
+  });
+
+  check('generate: a count of zero or nonsense yields an empty list', () => {
+    eq(TT.words.generate(0).length, 0);
+    eq(TT.words.generate(-5).length, 0);
+    eq(TT.words.generate(undefined).length, 0);
+  });
+
+  check('generate: every entry is a non-empty string with no spaces', () => {
+    const list = TT.words.generate(120, { punctuation: true, numbers: true });
+    eq(list.length, 120);
+    list.forEach((w, i) => {
+      assert(typeof w === 'string' && w.length > 0, 'entry ' + i + ' is empty');
+      assert(w.indexOf(' ') === -1, 'entry ' + i + ' contains a space: ' + w);
+    });
+  });
+
+  check('generate: punctuation keeps the count and ends the passage', () => {
+    for (let run = 0; run < 25; run++) {
+      const list = TT.words.generate(30, { punctuation: true });
+      eq(list.length, 30, 'word count');
+      const last = list[list.length - 1];
+      assert(/[.?!]$/.test(last), 'passage should end in punctuation, got ' + last);
+      assert(/^[A-Z"(]/.test(list[0]), 'passage should start capitalised, got ' + list[0]);
+    }
+  });
+
+  check('randomNumber: 1 to 4 digits, never a leading zero', () => {
+    for (let i = 0; i < 300; i++) {
+      const n = TT.words.randomNumber();
+      assert(/^[1-9][0-9]{0,3}$/.test(n), 'bad number: ' + n);
+    }
+  });
+
+  /* -------------------------------- storage ------------------------------- */
+
+  const run30 = { mode: 'time', modeValue: 30, punctuation: false, numbers: false };
+
+  check('storage: modeKey separates runs that are not comparable', () => {
+    const punct = Object.assign({}, run30, { punctuation: true });
+    const longer = Object.assign({}, run30, { modeValue: 60 });
+    eq(TT.storage.modeKey(run30), TT.storage.modeKey(Object.assign({}, run30)));
+    assert(TT.storage.modeKey(run30) !== TT.storage.modeKey(punct), 'punctuation must split the key');
+    assert(TT.storage.modeKey(run30) !== TT.storage.modeKey(longer), 'length must split the key');
+  });
+
+  check('storage: modeLabel names the active toggles', () => {
+    eq(TT.storage.modeLabel(run30), 'time 30');
+    eq(TT.storage.modeLabel({ mode: 'words', modeValue: 25, punctuation: true, numbers: true }),
+       'words 25 + punctuation + numbers');
+  });
+
+  check('storage: bestFor picks the fastest comparable run', () => {
+    const history = [
+      Object.assign({}, run30, { wpm: 70, accuracy: 95 }),
+      Object.assign({}, run30, { wpm: 85, accuracy: 92 }),
+      Object.assign({}, run30, { modeValue: 60, wpm: 99, accuracy: 90 })
+    ];
+    eq(TT.storage.bestFor(history, TT.storage.modeKey(run30)).wpm, 85);
+    eq(TT.storage.bestFor(history, 'words:10:-:-'), null, 'unseen mode has no best');
+  });
+
+  check('storage: personalBests keeps one entry per mode, time listed first', () => {
+    const history = [
+      Object.assign({}, run30, { wpm: 70, accuracy: 95 }),
+      Object.assign({}, run30, { wpm: 85, accuracy: 92 }),
+      Object.assign({}, run30, { modeValue: 60, wpm: 99, accuracy: 90 }),
+      { mode: 'words', modeValue: 25, punctuation: false, numbers: false, wpm: 60, accuracy: 98 }
+    ];
+    const pbs = TT.storage.personalBests(history);
+    eq(pbs.length, 3, 'one entry per distinct mode');
+    eq(pbs[0].mode, 'time', 'time comes first');
+    eq(pbs[0].modeValue, 30, 'shortest time first');
+    eq(pbs[0].wpm, 85, 'best of the two 30s runs');
+    eq(pbs[2].mode, 'words', 'words last');
+  });
+
+  /* -------------------------------- engine -------------------------------- */
+
+  function typeAll(engine, text) {
+    for (const ch of text) engine.typeChar(ch);
+  }
+
+  check('engine: words mode generates exactly the requested word count', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 10, punctuation: false, numbers: false });
+    eq(e.state.words.length, 10, 'word count');
+    eq(e.state.wordIndex, 0, 'starts at the first word');
+    eq(e.isRunning(), false, 'clock is not running yet');
+  });
+
+  check('engine: typing the passage exactly finishes it at 100% accuracy', () => {
+    const e = TT.createEngine();
+    let finished = null;
+    e.on('finish', (r) => { finished = r; });
+
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    typeAll(e, e.state.words.join(' '));
+
+    assert(finished, 'the test never finished');
+    eq(e.isFinished(), true, 'engine reports finished');
+    eq(Math.round(finished.accuracy), 100, 'accuracy');
+    eq(finished.chars.incorrect, 0, 'incorrect');
+    eq(finished.chars.extra, 0, 'extra');
+    eq(finished.chars.missed, 0, 'missed');
+  });
+
+  check('engine: a leading space does not start the clock', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'time', modeValue: 30, punctuation: false, numbers: false });
+    e.typeSpace();
+    eq(e.isRunning(), false, 'still idle');
+    eq(e.state.wordIndex, 0, 'still on the first word');
+    eq(e.elapsed(), 0, 'no time elapsed');
+  });
+
+  check('engine: time mode shows the full duration before the first key', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'time', modeValue: 30, punctuation: false, numbers: false });
+    eq(e.remaining(), 30);
+    eq(e.elapsed(), 0);
+  });
+
+  check('engine: space skips an incomplete word and leaves it missed', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    const first = e.state.words[0];
+
+    e.typeChar(first.charAt(0));
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'moved to the next word');
+
+    const c = TT.stats.countChars(e.state.words, e.state.typed, e.state.wordIndex);
+    eq(c.missed, first.length - 1, 'missed characters');
+    e.finish();
+  });
+
+  check('engine: backspace will not cross back into a correct word', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    typeAll(e, e.state.words[0]);
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'advanced');
+    e.backspace(false);
+    eq(e.state.wordIndex, 1, 'stayed on the new word');
+    e.finish();
+  });
+
+  check('engine: backspace does cross back into a word that has a mistake', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    const first = e.state.words[0];
+    e.typeChar(first.charAt(0) === 'z' ? 'q' : 'z'); // guaranteed wrong
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'advanced');
+    e.backspace(false);
+    eq(e.state.wordIndex, 0, 'returned to the flawed word');
+    e.finish();
+  });
+
+  check('engine: ctrl+backspace clears the whole current word', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    const first = e.state.words[0];
+    typeAll(e, first);
+    eq(e.state.typed[0], first, 'word typed');
+    e.backspace(true);
+    eq(e.state.typed[0], '', 'word cleared');
+    e.finish();
+  });
+
+  check('engine: overtyping is capped so a stuck key cannot grow the word', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    const first = e.state.words[0];
+    for (let i = 0; i < 200; i++) e.typeChar('x');
+    eq(e.state.typed[0].length, first.length + 10, 'capped at word length + 10');
+    e.finish();
+  });
+
+  check('engine: time mode refills words so the passage never runs out', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'time', modeValue: 60, punctuation: false, numbers: false });
+    const initial = e.state.words.length;
+
+    e.typeChar('a'); // start the clock
+    for (let i = 0; i < initial; i++) e.typeSpace();
+
+    assert(e.state.words.length > initial, 'the pool should have grown');
+    assert(e.state.words.length - e.state.wordIndex > 0, 'words remain ahead of the caret');
+    e.finish();
+  });
+
+  /* -------------------------------- petals -------------------------------- */
+
+  const PM = TT.petalMath;
+
+  check('petals: a petal is invisible at both ends of its fall', () => {
+    eq(PM.envelope(0), 0, 'at the very top');
+    eq(PM.envelope(1), 0, 'at the very bottom');
+    eq(PM.envelope(-0.2), 0, 'above the viewport');
+    eq(PM.envelope(1.5), 0, 'below the viewport');
+  });
+
+  check('petals: fully opaque through the middle of the fall', () => {
+    eq(PM.envelope(0.5), 1);
+    eq(PM.envelope(0.11), 1, 'just past the fade-in');
+    eq(PM.envelope(0.79), 1, 'just before the fade-out');
+  });
+
+  check('petals: fades in over the first tenth of travel', () => {
+    near(PM.envelope(0.05), 0.5, 0.001, 'halfway through the fade-in');
+    near(PM.envelope(0.10), 1.0, 0.001, 'fade-in complete');
+  });
+
+  check('petals: fades out over the last fifth of travel', () => {
+    near(PM.envelope(0.90), 0.5, 0.001, 'halfway through the fade-out');
+    near(PM.envelope(0.99), 0.05, 0.001, 'nearly gone');
+  });
+
+  check('petals: the envelope never leaves the 0..1 range', () => {
+    for (let p = -0.5; p <= 1.5; p += 0.01) {
+      const v = PM.envelope(p);
+      assert(v >= 0 && v <= 1, 'envelope(' + p.toFixed(2) + ') = ' + v);
+    }
+  });
+
+  check('petals: idle typing leaves the drift at 1x', () => {
+    eq(PM.driftTarget(0), PM.DRIFT_IDLE);
+  });
+
+  check('petals: drift is hard-capped so petals never race', () => {
+    eq(PM.driftTarget(8), PM.DRIFT_MAX, 'at the cap');
+    eq(PM.driftTarget(40), PM.DRIFT_MAX, 'absurdly fast typing');
+    eq(PM.driftTarget(1e6), PM.DRIFT_MAX, 'pathological input');
+  });
+
+  check('petals: drift rises monotonically between idle and the cap', () => {
+    let previous = -Infinity;
+    for (let kps = 0; kps <= 10; kps += 0.5) {
+      const v = PM.driftTarget(kps);
+      assert(v >= previous, 'drift dipped at ' + kps + ' keys/sec');
+      assert(v >= PM.DRIFT_IDLE && v <= PM.DRIFT_MAX, 'drift out of range: ' + v);
+      previous = v;
+    }
+  });
+
+  check('petals: the on-screen count is bounded and never grows without end', () => {
+    /* Raised from the brief's 14-18 on request, along with the petal
+       size, so the shape and the tumble can actually be seen. */
+    assert(PM.BASE_COUNT >= 14 && PM.BASE_COUNT <= 20, 'base count: ' + PM.BASE_COUNT);
+    assert(PM.MAX_COUNT <= 24, 'hard cap must not exceed 24, got ' + PM.MAX_COUNT);
+    assert(PM.MAX_COUNT >= PM.BASE_COUNT, 'cap below the base count');
+  });
+
+  check('petals: a tumbling petal never vanishes and never over-widens', () => {
+    let sawThin = false;
+    let sawWide = false;
+    for (let a = 0; a < Math.PI * 4; a += 0.01) {
+      const v = PM.flutterScale(a);
+      assert(Math.abs(v) <= 1 + 1e-9, 'wider than face-on at ' + a + ': ' + v);
+      assert(Math.abs(v) >= PM.MIN_SCALE - 1e-9, 'petal disappeared at ' + a + ': ' + v);
+      if (Math.abs(v) <= PM.MIN_SCALE + 1e-6) sawThin = true;
+      if (Math.abs(v) > 0.99) sawWide = true;
+    }
+    assert(sawThin, 'never turns edge-on');
+    assert(sawWide, 'never comes fully face-on');
+  });
+
+  check('petals: the tumble repeats cleanly', () => {
+    for (let a = 0; a < 6; a += 0.37) {
+      near(PM.flutterScale(a), PM.flutterScale(a + Math.PI * 2), 1e-9, 'at ' + a);
+    }
+  });
+
+  check('petals: the tip is a lighter tint of the petal, and bad input is safe', () => {
+    eq(PM.lighten('#000000', 1), 'rgb(255,255,255)', 'full mix is white');
+    eq(PM.lighten('#804020', 0), 'rgb(128,64,32)', 'no mix keeps the colour');
+    eq(PM.lighten('#000000', 0.5), 'rgb(128,128,128)', 'half way');
+    /* A theme could hand us something that is not a hex triplet. */
+    eq(PM.lighten('rebeccapurple', 0.3), 'rebeccapurple', 'unparsed colour passed through');
+    eq(PM.lighten(undefined, 0.3), undefined, 'missing colour passed through');
+  });
+
+  check('petals: typing moves the air more than it used to, still capped', () => {
+    /* The original brief asked for barely-perceptible motion and a 1.35x
+       ceiling. That was raised deliberately, on request, for a livelier
+       response. It is still a ceiling, not a free-for-all. */
+    assert(PM.DRIFT_MAX >= 1.5, 'drift cap is only ' + PM.DRIFT_MAX);
+    assert(PM.DRIFT_MAX <= 2, 'drift cap is ' + PM.DRIFT_MAX + ' - petals would race');
+  });
+
+  /* ------------------------------ sakura theme ---------------------------- */
+
+  check('sakura is a selectable theme', () => {
+    assert(TT.config.THEMES.indexOf('sakura') !== -1, 'sakura missing from THEMES');
+  });
+
+  check('colour mode offers auto, light and dark', () => {
+    eq(TT.config.COLOR_MODES.join(','), 'auto,light,dark');
+  });
+
+  check('storage: an unknown theme or colour mode falls back to a default', () => {
+    /* sanitizeSettings is internal, so exercise it the way the app does -
+       through the validated config lists it checks against. */
+    assert(TT.config.THEMES.indexOf('not-a-theme') === -1);
+    assert(TT.config.COLOR_MODES.indexOf('sideways') === -1);
+    eq(TT.storage.DEFAULTS.colorMode, 'auto');
+  });
+
+
+  /* ------------------------------- 1 word mode ---------------------------- */
+
+  check('config: 1 word is a selectable, timed mode', () => {
+    assert(TT.config.MODES.indexOf('single') !== -1, 'single missing from MODES');
+    eq(TT.storage.isTimed('single'), true, 'single ends on the clock');
+    eq(TT.storage.isTimed('time'), true, 'time ends on the clock');
+    eq(TT.storage.isTimed('words'), false, 'words ends on a count');
+  });
+
+  check('config: each mode owns its own length setting', () => {
+    eq(TT.storage.settingFor('time'), 'timeValue');
+    eq(TT.storage.settingFor('words'), 'wordValue');
+    eq(TT.storage.settingFor('single'), 'singleValue');
+    eq(TT.storage.valuesFor('single').join(','), TT.config.TIME_VALUES.join(','));
+    eq(TT.storage.valuesFor('words').join(','), TT.config.WORD_VALUES.join(','));
+    /* An unknown mode must not return undefined and blow up the mode bar. */
+    assert(Array.isArray(TT.storage.valuesFor('nonsense')), 'unknown mode has no values');
+  });
+
+  check('storage: 1 word runs are labelled and kept separate', () => {
+    eq(TT.storage.modeLabel({ mode: 'single', modeValue: 30 }), '1 word 30');
+    const a = { mode: 'single', modeValue: 30, punctuation: false, numbers: false };
+    const b = { mode: 'time', modeValue: 30, punctuation: false, numbers: false };
+    assert(TT.storage.modeKey(a) !== TT.storage.modeKey(b),
+      '1 word 30 and time 30 must not share a personal best');
+  });
+
+  check('engine: 1 word is stocked and timed like time mode', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 15, punctuation: false, numbers: false });
+    eq(e.isSingle(), true, 'reports single');
+    eq(e.isTimed(), true, 'reports timed');
+    eq(e.remaining(), 15, 'full duration before the first key');
+    /* Not 15 words: a timed run needs a pool it cannot exhaust. */
+    assert(e.state.words.length > 15, 'pool too small: ' + e.state.words.length);
+  });
+
+  check('engine: 1 word commits itself - no space needed', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 30, punctuation: false, numbers: false });
+
+    const first = e.state.words[0];
+    for (let i = 0; i < first.length; i++) {
+      eq(e.state.wordIndex, 0, 'moved on before the word was finished');
+      e.typeChar(first.charAt(i));
+    }
+
+    eq(e.state.wordIndex, 1, 'the last letter did not commit the word');
+    eq(e.state.typed[1], '', 'the new word starts empty');
+    e.finish();
+  });
+
+  check('engine: 1 word holds until a mistyped word is corrected', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 30, punctuation: false, numbers: false });
+
+    const word = e.state.words[0];
+    /* Wrong first letter, then the rest of the word correctly: the string
+       can never match, so it must sit there. */
+    e.typeChar(word.charAt(0) === 'z' ? 'q' : 'z');
+    for (let i = 1; i < word.length; i++) e.typeChar(word.charAt(i));
+    eq(e.state.wordIndex, 0, 'advanced on a word that does not match');
+
+    /* Fix it: back to the start, then type it properly. */
+    for (let i = 0; i < word.length; i++) e.backspace(false);
+    typeAll(e, word);
+    eq(e.state.wordIndex, 1, 'a corrected word still commits');
+    e.finish();
+  });
+
+  check('engine: a space out of habit does not skip the next word', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 30, punctuation: false, numbers: false });
+
+    typeAll(e, e.state.words[0]);
+    eq(e.state.wordIndex, 1, 'auto-advanced');
+
+    const before = e.state.keystrokes.incorrect;
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'the habitual space skipped an unseen word');
+    eq(e.state.keystrokes.incorrect, before, 'and it was counted against accuracy');
+    e.finish();
+  });
+
+  check('engine: space still gives up on a word you have started', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 30, punctuation: false, numbers: false });
+
+    const word = e.state.words[0];
+    e.typeChar(word.charAt(0) === 'z' ? 'q' : 'z');
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'space did not move past the botched word');
+
+    const c = TT.stats.countChars(e.state.words, e.state.typed, e.state.wordIndex);
+    eq(c.missed, word.length - 1, 'the rest of the word counts as missed');
+    e.finish();
+  });
+
+  check('engine: an auto-committed word still earns its separator', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 60, punctuation: false, numbers: false });
+
+    let letters = 0;
+    for (let n = 0; n < 4; n++) {
+      const word = e.state.words[e.state.wordIndex];
+      letters += word.length;
+      typeAll(e, word);
+    }
+
+    const c = TT.stats.countChars(e.state.words, e.state.typed, e.state.wordIndex);
+    eq(e.state.wordIndex, 4, 'four words committed');
+    /* Four words plus the four separators they imply: the same figure a
+       space-committed run would produce, so wpm stays comparable. */
+    eq(c.correctWithSpaces, letters + 4, 'separators were not credited');
+    eq(c.typedTotal, letters + 4, 'raw is counted the same way');
+    e.finish();
+  });
+
+  check('engine: 1 word never runs dry', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 60, punctuation: false, numbers: false });
+    const startingPool = e.state.words.length;
+
+    for (let i = 0; i < startingPool - 5; i++) {
+      typeAll(e, e.state.words[e.state.wordIndex]);
+    }
+
+    eq(e.state.wordIndex, startingPool - 5, 'advanced one word at a time');
+    assert(e.state.words.length > startingPool,
+      'pool never refilled: ' + e.state.words.length);
+    assert(!e.isFinished(), 'a timed run must not end on word count');
+    e.finish();
+  });
+
+  check('engine: 1 word does not let the caret walk back off screen', () => {
+    const e = TT.createEngine();
+    e.reset({ mode: 'single', modeValue: 30, punctuation: false, numbers: false });
+
+    /* Leave a mistake behind: in words mode that is exactly the case
+       where backspace is allowed to cross the boundary. */
+    e.typeChar('x');
+    e.typeSpace();
+    eq(e.state.wordIndex, 1, 'advanced');
+    e.backspace(false);
+    eq(e.state.wordIndex, 1, 'stayed on the visible word');
+    e.finish();
+
+    const w = TT.createEngine();
+    w.reset({ mode: 'words', modeValue: 5, punctuation: false, numbers: false });
+    w.typeChar('x');
+    w.typeSpace();
+    w.backspace(false);
+    eq(w.state.wordIndex, 0, 'words mode still crosses back into a wrong word');
+    w.finish();
+  });
+
+  /* ------------------------------- lava lamp ------------------------------ */
+
+  const LM = TT.lampMath;
+
+  check('lamp: heat rises with typing speed and is hard-capped', () => {
+    eq(LM.heatTarget(0), LM.HEAT_IDLE, 'idle');
+    eq(LM.heatTarget(-5), LM.HEAT_IDLE, 'negative rate cannot slow it below idle');
+    eq(LM.heatTarget(1000), LM.HEAT_MAX, 'an absurd rate still stops at the cap');
+
+    let previous = -Infinity;
+    for (let kps = 0; kps <= 20; kps += 0.5) {
+      const v = LM.heatTarget(kps);
+      assert(v >= previous, 'heat dipped at ' + kps + ' keys/sec');
+      assert(v <= LM.HEAT_MAX, 'over the cap at ' + kps + ': ' + v);
+      previous = v;
+    }
+  });
+
+  check('lamp: the cap keeps the backdrop calm at any speed', () => {
+    /* 45% faster than idle at most - a lamp, not a lava flow. */
+    assert(LM.HEAT_MAX <= 1.8, 'heat cap is ' + LM.HEAT_MAX);
+    assert(LM.HEAT_MAX > LM.HEAT_IDLE, 'heat never rises at all');
+  });
+
+  check('lamp: a blob path is closed-form, so frames cannot drift it', () => {
+    const at = (t) => LM.wave(t, 30, 1.2, 100);
+    /* Reading the same instant twice must give the same answer, and
+       reading it many times must not advance anything. */
+    const first = at(7.5);
+    for (let i = 0; i < 50; i++) at(Math.random() * 100);
+    eq(at(7.5), first, 'position changed just from being read');
+    near(at(7.5 + 30), first, 1e-9, 'not periodic over its period');
+  });
+
+  check('lamp: a blob never leaves its own path amplitude', () => {
+    for (let t = 0; t < 60; t += 0.37) {
+      const v = LM.wave(t, 24, 0.4, 80);
+      assert(Math.abs(v) <= 80 + 1e-9, 'amplitude exceeded at t=' + t + ': ' + v);
+    }
+  });
+
+  check('lamp: one keystroke swings a blob and it settles back', () => {
+    let s = { offset: 0, velocity: LM.kick(0, -LM.IMPULSE) };
+    let peak = 0;
+    for (let i = 0; i < 60 * 8; i++) {
+      s = LM.springStep(s.offset, s.velocity, 1 / 60);
+      peak = Math.min(peak, s.offset);
+    }
+    assert(peak < -20, 'the kick barely moved anything: ' + peak.toFixed(1) + 'px');
+    assert(Math.abs(s.offset) < 1, 'still displaced by ' + s.offset.toFixed(2) + 'px after 8s');
+    assert(Math.abs(s.velocity) < 1, 'still moving at ' + s.velocity.toFixed(2) + 'px/s');
+  });
+
+  check('lamp: a held key cannot fling a blob off its path', () => {
+    /* Every frame for ten seconds, which no typist can do. */
+    let s = { offset: 0, velocity: 0 };
+    for (let i = 0; i < 600; i++) {
+      s.velocity = LM.kick(s.velocity, -LM.IMPULSE);
+      s = LM.springStep(s.offset, s.velocity, 1 / 60);
+      assert(Math.abs(s.offset) <= LM.MAX_OFFSET + 1e-9, 'offset escaped: ' + s.offset);
+      assert(Math.abs(s.velocity) <= LM.MAX_VELOCITY + 1e-9, 'velocity escaped: ' + s.velocity);
+    }
+    /* And the limit is small enough to read as a surge, not a jump. */
+    assert(LM.MAX_OFFSET <= 140, 'blobs may be displaced ' + LM.MAX_OFFSET + 'px');
+  });
+
+  check('lamp: the spring is stable at the worst frame time it can see', () => {
+    /* A stalled tab hands the loop its clamped maximum, 0.1s. */
+    let s = { offset: LM.MAX_OFFSET, velocity: -LM.MAX_VELOCITY };
+    for (let i = 0; i < 400; i++) {
+      s = LM.springStep(s.offset, s.velocity, 0.1);
+      assert(isFinite(s.offset) && isFinite(s.velocity), 'the spring blew up at step ' + i);
+    }
+    assert(Math.abs(s.offset) < 1, 'never settled: ' + s.offset);
+  });
+
+  check('lamp: bloom fades on its own and never inverts', () => {
+    let v = LM.MAX_BLOOM;
+    for (let i = 0; i < 400; i++) {
+      const next = LM.decay(v, 1.2, 1 / 60);
+      assert(next <= v + 1e-12, 'decay grew the bloom');
+      assert(next >= 0, 'decay pushed the bloom past zero to ' + next);
+      v = next;
+    }
+    assert(v < 0.005, 'still swollen by ' + v);
+    eq(LM.decay(10, 1.2, 999), 0, 'a long frame flipped the bloom');
+  });
+
+  check('lamp: few blobs, drawn below full resolution', () => {
+    assert(LM.BLOB_COUNT <= 10, 'blob count is ' + LM.BLOB_COUNT);
+    assert(LM.RENDER_SCALE < 1, 'the canvas is drawn at full resolution');
+    assert(LM.MAX_BLOOM <= 0.35, 'blobs may swell by ' + LM.MAX_BLOOM);
+  });
+
+  check('lamp is the default theme and drives the canvas from CSS', () => {
+    eq(TT.storage.DEFAULTS.theme, 'lamp');
+    assert(TT.config.THEMES.indexOf('lamp') !== -1, 'lamp missing from THEMES');
+
+    const root = document.documentElement;
+    const before = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'lamp');
+    const cs = getComputedStyle(root);
+    ['--lamp-a', '--lamp-b', '--lamp-alpha-min', '--lamp-alpha-max'].forEach((n) => {
+      assert(cs.getPropertyValue(n).trim() !== '', 'lamp is missing ' + n);
+    });
+    if (before) root.setAttribute('data-theme', before);
+  });
+
+  /* ------------------------------ new palettes ---------------------------- */
+
+  check('themes: the monkeytype palettes are gone and lamp is the default', () => {
+    eq(TT.config.THEMES.indexOf('serika-dark'), -1, 'serika-dark still listed');
+    eq(TT.storage.DEFAULTS.theme, 'lamp');
+    ['lamp', 'paper', 'ink', 'linen', 'oxide', 'iris', 'sakura'].forEach((t) => {
+      assert(TT.config.THEMES.indexOf(t) !== -1, 'missing theme: ' + t);
+    });
+  });
+
+  check('themes: every palette defines every variable', () => {
+    const names = ['--bg', '--sub-alt', '--rule', '--sub', '--text',
+                   '--main', '--caret', '--error', '--error-extra'];
+    const root = document.documentElement;
+    const before = root.getAttribute('data-theme');
+
+    TT.config.THEMES.forEach((theme) => {
+      root.setAttribute('data-theme', theme);
+      const style = getComputedStyle(root);
+      names.forEach((n) => {
+        assert(style.getPropertyValue(n).trim() !== '', theme + ' is missing ' + n);
+      });
+    });
+
+    if (before) root.setAttribute('data-theme', before);
+  });
+
+  /* ---------------------------- results guard ---------------------------- */
+
+  /* A fake clock, so the 2s window can be tested without waiting 2s. */
+  function fakeClock(start) {
+    let t = start || 0;
+    const fn = () => t;
+    fn.advance = (ms) => { t += ms; };
+    return fn;
+  }
+
+  check('guard: does nothing until it is armed', () => {
+    const clock = fakeClock(1000);
+    const g = TT.createGuard(2000, clock);
+    eq(g.active(), false, 'inactive before arming');
+    eq(g.remaining(), 0, 'nothing remaining');
+  });
+
+  check('guard: blocks for the full window after a test ends', () => {
+    const clock = fakeClock(1000);
+    const g = TT.createGuard(2000, clock);
+    g.arm();
+
+    eq(g.active(), true, 'immediately after finishing');
+    clock.advance(1000);
+    eq(g.active(), true, 'one second later');
+    clock.advance(999);
+    eq(g.active(), true, 'a millisecond short of the window');
+  });
+
+  check('guard: lets a restart through once the window has passed', () => {
+    const clock = fakeClock(1000);
+    const g = TT.createGuard(2000, clock);
+    g.arm();
+
+    clock.advance(2000);
+    eq(g.active(), false, 'exactly at the boundary');
+    clock.advance(5000);
+    eq(g.active(), false, 'well past it');
+    eq(g.remaining(), 0, 'remaining floors at zero');
+  });
+
+  check('guard: reports how much of the window is left', () => {
+    const clock = fakeClock(0);
+    const g = TT.createGuard(2000, clock);
+    g.arm();
+
+    eq(g.remaining(), 2000, 'the whole window');
+    clock.advance(750);
+    eq(g.remaining(), 1250, 'after three quarters of a second');
+    clock.advance(10000);
+    eq(g.remaining(), 0, 'never goes negative');
+  });
+
+  check('guard: clearing it releases the block at once', () => {
+    const clock = fakeClock(0);
+    const g = TT.createGuard(2000, clock);
+    g.arm();
+    eq(g.active(), true, 'armed');
+
+    g.clear();
+    eq(g.active(), false, 'cleared straight away');
+    eq(g.remaining(), 0);
+  });
+
+  check('guard: re-arming restarts the window from now', () => {
+    const clock = fakeClock(0);
+    const g = TT.createGuard(2000, clock);
+    g.arm();
+    clock.advance(1900);
+    g.arm();
+    clock.advance(1000);
+    eq(g.active(), true, 'still inside the second window');
+  });
+
+
+  /* ---------------------------- race opponent ---------------------------- */
+
+  const R = TT.race;
+  const half = () => 0.5;   // no jitter, so the maths is checkable
+
+  check('race: average wpm ignores empty history and junk entries', () => {
+    eq(R.averageWpm([]), 0, 'empty');
+    eq(R.averageWpm(null), 0, 'missing');
+    eq(R.averageWpm([{ wpm: 'fast' }, { wpm: 0 }, { nope: 1 }]), 0, 'unusable entries');
+  });
+
+  check('race: average wpm is the mean of recent runs', () => {
+    eq(R.averageWpm([{ wpm: 60 }, { wpm: 80 }]), 70);
+  });
+
+  check('race: average wpm only looks at the most recent runs', () => {
+    const history = [{ wpm: 100 }, { wpm: 100 }, { wpm: 100 }, { wpm: 1 }, { wpm: 1 }];
+    eq(R.averageWpm(history, 3), 100, 'old slow runs must not drag it down');
+  });
+
+  check('race: the first five races ignore the typist and pick from a band', () => {
+    for (let races = 0; races < R.RACE_UNLOCK; races++) {
+      const wpm = R.opponentWpm({ average: 200, racesCompleted: races, random: half });
+      assert(wpm >= R.WARMUP_MIN && wpm <= R.WARMUP_MAX,
+        'race ' + races + ' produced ' + wpm + ', outside the warm-up band');
+    }
+  });
+
+  check('race: the first calibrated race is a dead heat', () => {
+    const wpm = R.opponentWpm({ average: 70, racesCompleted: R.RACE_UNLOCK, random: half });
+    near(wpm, 70, 0.001, 'should match the typist exactly when calibration begins');
+  });
+
+  check('race: difficulty ramps two percent per race after that', () => {
+    near(R.opponentWpm({ average: 70, racesCompleted: 6, random: half }), 70 * 1.02, 0.001, 'one race on');
+    near(R.opponentWpm({ average: 70, racesCompleted: 8, random: half }), 70 * 1.06, 0.001, 'three races on');
+  });
+
+  check('race: the ramp stops at twenty percent and never runs away', () => {
+    near(R.opponentWpm({ average: 70, racesCompleted: 15, random: half }), 70 * 1.2, 0.001, 'cap reached');
+    near(R.opponentWpm({ average: 70, racesCompleted: 500, random: half }), 70 * 1.2, 0.001, 'and it holds');
+  });
+
+  check('race: the opponent tracks a typist who improves', () => {
+    const slow = R.opponentWpm({ average: 40, racesCompleted: 20, random: half });
+    const fast = R.opponentWpm({ average: 90, racesCompleted: 20, random: half });
+    assert(fast > slow, 'a faster typist must get a faster opponent');
+    near(fast / slow, 90 / 40, 0.001, 'and proportionally so');
+  });
+
+  check('race: a typist with no history still gets an opponent', () => {
+    const wpm = R.opponentWpm({ average: 0, racesCompleted: 40, random: half });
+    assert(wpm >= R.WARMUP_MIN && wpm <= R.WARMUP_MAX, 'fell outside the band: ' + wpm);
+  });
+
+  check('race: jitter keeps two races from feeling identical', () => {
+    const low = R.opponentWpm({ average: 70, racesCompleted: 5, random: () => 0 });
+    const high = R.opponentWpm({ average: 70, racesCompleted: 5, random: () => 1 });
+    near(low, 70 * 0.92, 0.001, 'slowest draw');
+    near(high, 70 * 1.08, 0.001, 'fastest draw');
+  });
+
+  check('race: opponent speed stays inside sane bounds', () => {
+    const slow = R.opponentWpm({ average: 2, racesCompleted: 50, random: () => 0 });
+    const fast = R.opponentWpm({ average: 900, racesCompleted: 50, random: () => 1 });
+    assert(slow >= R.FLOOR, 'floor not honoured: ' + slow);
+    assert(fast <= R.CEILING, 'ceiling not honoured: ' + fast);
+  });
+
+  check('race: the finish line counts words plus their separators', () => {
+    eq(R.totalChars(['the', 'cat']), 7);
+    eq(R.totalChars(['solo']), 4);
+    eq(R.totalChars([]), 0);
+  });
+
+  check('race: your position tracks the caret through the passage', () => {
+    const words = ['the', 'cat', 'sat'];
+    eq(R.caretPosition(words, [''], 0), 0, 'at the start');
+    eq(R.caretPosition(words, ['th'], 0), 2, 'mid first word');
+    eq(R.caretPosition(words, ['the', 'c'], 1), 5, 'the separator counts');
+    eq(R.caretPosition(words, ['the', 'cat', 'sat'], 2), 11, 'at the finish');
+  });
+
+  check('race: position never overshoots the finish line', () => {
+    eq(R.caretPosition(['the', 'cat'], ['the', 'catttttt'], 1), 7, 'overtyping cannot pass the end');
+    eq(R.caretPosition([], [''], 0), 0, 'an empty passage');
+  });
+
+  check('race: the opponent starts on the line', () => {
+    eq(R.createOpponent(90).positionAt(0), 0, 'at zero seconds');
+    eq(R.createOpponent(90).positionAt(-5), 0, 'and cannot be pushed behind it');
+  });
+
+  check('race: the opponent covers its rated distance in a minute', () => {
+    near(R.createOpponent(60).positionAt(60), 300, 1,
+      'a 60 wpm opponent covers 300 characters');
+  });
+
+  check('race: the opponent only ever moves forward', () => {
+    const op = R.createOpponent(80);
+    let previous = -1;
+    for (let t = 0; t <= 40; t += 0.05) {
+      const p = op.positionAt(t);
+      assert(p >= previous, 'the opponent went backwards at t=' + t.toFixed(2));
+      previous = p;
+    }
+  });
+
+  check('race: the opponent is stateless, so dropped frames cost it nothing', () => {
+    /* Position is a function of elapsed time, not an accumulation of frame
+       deltas. Polling it at any rate, in any order, must not move it. */
+    const op = R.createOpponent(75);
+    const direct = op.positionAt(10);
+    for (let i = 0; i < 500; i++) op.positionAt(Math.random() * 40);
+    eq(op.positionAt(10), direct, 'polling must not change where it is');
+  });
+
+  check('race: a faster opponent is always further along', () => {
+    const slow = R.createOpponent(40);
+    const fast = R.createOpponent(120);
+    for (let t = 5; t <= 30; t += 5) {
+      assert(fast.positionAt(t) > slow.positionAt(t), 'at t=' + t);
+    }
+  });
+
+
+  /* --------------------------- results reveal --------------------------- */
+
+  const RV = TT.reveal;
+  const zero = () => 0;   /* every random glyph becomes '0' */
+
+  check('scramble: progress 1 is exactly the target', () => {
+    eq(RV.scrambleFrame('123', 1, zero), '123');
+    eq(RV.scrambleFrame('98%', 2, zero), '98%');
+  });
+
+  check('scramble: at the start every digit is replaced', () => {
+    eq(RV.scrambleFrame('123', 0, zero), '000');
+  });
+
+  check('scramble: separators keep their place', () => {
+    eq(RV.scrambleFrame('12/3/0/1', 0, zero), '00/0/0/0');
+    eq(RV.scrambleFrame('7.5s', 0, zero), '0.0s');
+    eq(RV.scrambleFrame('88%', 0, zero), '00%');
+  });
+
+  check('scramble: length never changes, so the layout cannot jitter', () => {
+    const target = '123/45/6/7';
+    for (let p = 0; p <= 1.0001; p += 0.05) {
+      eq(RV.scrambleFrame(target, p, Math.random).length, target.length, 'p=' + p);
+    }
+  });
+
+  check('scramble: digits settle left to right', () => {
+    /* Three digits lock at 8/15, 11/15 and 1. */
+    eq(RV.scrambleFrame('123', 0.4, zero), '000');
+    eq(RV.scrambleFrame('123', 0.6, zero), '100');
+    eq(RV.scrambleFrame('123', 0.8, zero), '120');
+    eq(RV.scrambleFrame('123', 0.99, zero), '120');
+    eq(RV.scrambleFrame('123', 1, zero), '123');
+  });
+
+  check('scramble: text with no digits is left alone', () => {
+    eq(RV.scrambleFrame('time 15', 0, zero), 'time 00');
+    eq(RV.scrambleFrame('words', 0, zero), 'words');
+    eq(RV.scrambleFrame('', 0, zero), '');
+    eq(RV.scrambleFrame(null, 0, zero), '');
+  });
+
+  check('scramble: out-of-range randoms stay inside the digit set', () => {
+    eq(RV.scrambleFrame('55', 0, () => 1), '99');
+    eq(RV.scrambleFrame('55', 0, () => 0.999999), '99');
+  });
+
+  /* ---------------------------- chart reveal ---------------------------- */
+
+  const C = TT.chartMath;
+  const line = [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 0 }];
+
+  check('chart sweep: 0 draws nothing, 1 draws the whole line', () => {
+    eq(C.partialPoints(line, 0).length, 1);
+    eq(C.partialPoints(line, 1).length, 3);
+    eq(C.partialPoints([], 1).length, 0);
+  });
+
+  check('chart sweep: cuts mid-segment rather than at a vertex', () => {
+    const half = C.partialPoints(line, 0.25);
+    eq(half.length, 2, 'point count');
+    near(half[1].x, 5, 1e-9, 'x');
+    near(half[1].y, 5, 1e-9, 'y');
+  });
+
+  check('chart sweep: never runs past the end or backwards', () => {
+    eq(C.partialPoints(line, 5).length, 3);
+    eq(C.partialPoints(line, -1).length, 1);
+    eq(C.partialPoints([{ x: 1, y: 1 }], 0.5).length, 1);
+  });
+
+  check('chart sweep: reveal is monotonic', () => {
+    let previous = -1;
+    for (let p = 0; p <= 1.0001; p += 0.05) {
+      const points = C.partialPoints(line, C.easeOutCubic(p));
+      const reach = points.length ? points[points.length - 1].x : -1;
+      assert(reach >= previous, 'went backwards at p=' + p);
+      previous = reach;
+    }
+    near(previous, 20, 1e-9, 'ends at the last point');
+  });
+
+  check('chart sweep: easing starts at 0, ends at 1, and is clamped', () => {
+    eq(C.easeOutCubic(0), 0);
+    eq(C.easeOutCubic(1), 1);
+    eq(C.easeOutCubic(-3), 0);
+    eq(C.easeOutCubic(3), 1);
+  });
+
+  check('reveal timings stay short', () => {
+    assert(C.REVEAL_MS <= 800, 'chart reveal is ' + C.REVEAL_MS + 'ms');
+    assert(RV.DEFAULT_DURATION <= 800, 'number reveal is ' + RV.DEFAULT_DURATION + 'ms');
+  });
+
+  /* ------------------------------- reporting ------------------------------ */
+
+  const rows = document.getElementById('rows');
+  let passed = 0;
+
+  results.forEach((r) => {
+    if (r.ok) passed++;
+    const tr = document.createElement('tr');
+    tr.className = r.ok ? 'ok' : 'bad';
+
+    const status = document.createElement('td');
+    status.className = 'status';
+    status.textContent = r.ok ? 'PASS' : 'FAIL';
+
+    const name = document.createElement('td');
+    name.className = 'name';
+    name.textContent = r.name;
+
+    const msg = document.createElement('td');
+    msg.className = 'msg';
+    msg.textContent = r.msg;
+
+    tr.append(status, name, msg);
+    rows.appendChild(tr);
+  });
+
+  const failed = results.length - passed;
+  const summary = document.getElementById('summary');
+  summary.className = 'summary ' + (failed ? 'fail' : 'pass');
+  summary.textContent = failed
+    ? failed + ' of ' + results.length + ' checks failed'
+    : 'all ' + results.length + ' checks passed';
+})();
+</script>
+</body>
+</html>

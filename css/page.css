@@ -1,0 +1,142 @@
+/* =================================================================
+   page.css - the prose pages: privacy, terms, support, about, 404.
+
+   These are documents, not the app. They borrow the palette and the
+   editorial voice from style.css and add only what running text needs:
+   a narrower measure, real heading sizes, and list and table styles.
+   ================================================================= */
+
+.page {
+  max-width: 38rem;          /* narrower than the app: this is reading text */
+  padding-bottom: 4rem;
+}
+
+.page-body {
+  padding: 2.5rem 0 1rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0 0 .5rem;
+  color: var(--text);
+}
+
+.page-updated {
+  margin: 0 0 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.page-body h2 {
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 2.75rem 0 .75rem;
+  color: var(--text);
+}
+
+/* Reads as a quiet label but takes the full text colour: --sub is tuned to
+   recede behind the words you are typing, which is far too faint for a
+   heading someone is meant to read. */
+.page-body h3 {
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 600;
+  color: var(--text);
+  margin: 2rem 0 .5rem;
+}
+
+.page-body p { margin: 0 0 1.1rem; }
+
+.page-body ul,
+.page-body ol { margin: 0 0 1.1rem; padding-left: 1.25rem; }
+.page-body li { margin-bottom: .5rem; }
+
+.page-body a {
+  color: var(--main);
+  text-decoration-color: var(--rule);
+  text-underline-offset: .2em;
+  transition: text-decoration-color .18s ease;
+}
+.page-body a:hover { text-decoration-color: var(--main); }
+
+.page-body strong { font-weight: 600; color: var(--text); }
+
+.page-body code {
+  font-family: var(--font-mono);
+  font-size: .875em;
+  color: var(--main);
+}
+
+/* A pulled-aside note: the one thing on the page worth reading twice. */
+.callout {
+  margin: 0 0 1.5rem;
+  padding: 1rem 0 1rem 1.25rem;
+  border-left: 2px solid var(--main);
+  color: var(--text);
+}
+.callout p { margin: 0; }
+.callout p + p { margin-top: .75rem; }
+
+/* Anything the reader has to fill in before this site goes live. */
+.todo { border-left-color: var(--error); }
+
+.page-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.5rem;
+  font-size: .9375rem;
+}
+.page-table th {
+  text-align: left;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 1rem .6rem 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+.page-table td {
+  padding: .75rem 1rem .75rem 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+  vertical-align: top;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: var(--rule-w) solid var(--rule);
+  width: 100%;
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--sub);
+  text-decoration: none;
+}
+.back-link:hover { color: var(--main); }
+
+/* --------------------------------- 404 --------------------------------- */
+
+.notfound {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.notfound .page-title { font-size: 4rem; }
+
+@media (max-width: 720px) {
+  .page-title { font-size: 2rem; }
+  .notfound .page-title { font-size: 3rem; }
+  .page-body { font-size: .9375rem; }
+}

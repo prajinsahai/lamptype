@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lamp">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ===================================================================
+     BEFORE LAUNCH: replace every "lamptype.example" with your real
+     domain. It is a reserved TLD (RFC 2606) so it can never resolve to
+     anyone's site by accident. Occurrences: the canonical and og: tags
+     below, the JSON-LD block, sitemap.xml and .well-known/security.txt.
+     See README.md -> Deploying.
+     =================================================================== -->
+<title>LampType — a typing test with a lava lamp</title>
+<meta name="description" content="LampType: a quiet typing test with a lava lamp backdrop that answers your keystrokes. Time, words and 1-word modes, live WPM, a results chart, themes, and local personal bests.">
+<link rel="canonical" href="https://lamptype.example/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LampType">
+<meta property="og:title" content="LampType — a typing test with a lava lamp">
+<meta property="og:description" content="A quiet typing test with a lava lamp backdrop that answers your keystrokes. Nothing you type ever leaves your browser.">
+<meta property="og:url" content="https://lamptype.example/">
+<meta property="og:image" content="https://lamptype.example/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The LampType typing test, with soft lava lamp blobs drifting behind the words.">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- Kept in step with the active theme by ui.applyTheme(). -->
+<meta name="theme-color" content="#0e0f13">
+
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/sakura.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "LampType",
+  "url": "https://lamptype.example/",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Any browser",
+  "browserRequirements": "Requires JavaScript",
+  "description": "A typing speed test with a lava lamp backdrop that reacts to your keystrokes. Time, words and 1-word modes, live WPM, a results chart, themes and local personal bests.",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+</head>
+<body>
+
+<a class="skip-link" href="#typing-area">Skip to the typing test</a>
+
+<!-- The lava lamp. Sits behind everything, runs only on the lamp theme. -->
+<canvas id="lamp-canvas" class="lamp-canvas" aria-hidden="true" hidden></canvas>
+
+<canvas id="petal-canvas" class="petal-canvas" aria-hidden="true" hidden></canvas>
+
+<!-- A single branch in the corner, never animated: an accent you barely notice. -->
+<svg class="sakura-branch" viewBox="0 0 260 180" aria-hidden="true" focusable="false">
+  <g fill="none" stroke="var(--text)" stroke-width="2.4" stroke-linecap="round">
+    <path d="M-6 6 C40 16 78 32 116 56 S176 94 214 116"/>
+    <path d="M40 17 C52 32 60 48 66 68"/>
+    <path d="M98 45 C112 41 126 38 143 38"/>
+    <path d="M148 76 C157 91 162 106 164 122"/>
+    <path d="M180 98 C188 100 193 103 198 108"/>
+  </g>
+  <g fill="var(--main)">
+    <circle cx="52.0" cy="20.4" r="3"/>
+    <circle cx="55.4" cy="22.9" r="3"/>
+    <circle cx="54.1" cy="26.9" r="3"/>
+    <circle cx="49.9" cy="26.9" r="3"/>
+    <circle cx="48.6" cy="22.9" r="3"/>
+    <circle cx="52.0" cy="24.0" r="1.4" opacity=".55"/>
+    <circle cx="68.0" cy="62.4" r="3"/>
+    <circle cx="71.4" cy="64.9" r="3"/>
+    <circle cx="70.1" cy="68.9" r="3"/>
+    <circle cx="65.9" cy="68.9" r="3"/>
+    <circle cx="64.6" cy="64.9" r="3"/>
+    <circle cx="68.0" cy="66.0" r="1.4" opacity=".55"/>
+    <circle cx="108.0" cy="46.4" r="3"/>
+    <circle cx="111.4" cy="48.9" r="3"/>
+    <circle cx="110.1" cy="52.9" r="3"/>
+    <circle cx="105.9" cy="52.9" r="3"/>
+    <circle cx="104.6" cy="48.9" r="3"/>
+    <circle cx="108.0" cy="50.0" r="1.4" opacity=".55"/>
+    <circle cx="141.0" cy="35.4" r="3"/>
+    <circle cx="144.4" cy="37.9" r="3"/>
+    <circle cx="143.1" cy="41.9" r="3"/>
+    <circle cx="138.9" cy="41.9" r="3"/>
+    <circle cx="137.6" cy="37.9" r="3"/>
+    <circle cx="141.0" cy="39.0" r="1.4" opacity=".55"/>
+    <circle cx="152.0" cy="82.4" r="3"/>
+    <circle cx="155.4" cy="84.9" r="3"/>
+    <circle cx="154.1" cy="88.9" r="3"/>
+    <circle cx="149.9" cy="88.9" r="3"/>
+    <circle cx="148.6" cy="84.9" r="3"/>
+    <circle cx="152.0" cy="86.0" r="1.4" opacity=".55"/>
+    <circle cx="164.0" cy="117.4" r="3"/>
+    <circle cx="167.4" cy="119.9" r="3"/>
+    <circle cx="166.1" cy="123.9" r="3"/>
+    <circle cx="161.9" cy="123.9" r="3"/>
+    <circle cx="160.6" cy="119.9" r="3"/>
+    <circle cx="164.0" cy="121.0" r="1.4" opacity=".55"/>
+    <circle cx="197.0" cy="103.4" r="3"/>
+    <circle cx="200.4" cy="105.9" r="3"/>
+    <circle cx="199.1" cy="109.9" r="3"/>
+    <circle cx="194.9" cy="109.9" r="3"/>
+    <circle cx="193.6" cy="105.9" r="3"/>
+    <circle cx="197.0" cy="107.0" r="1.4" opacity=".55"/>
+  </g>
+</svg>
+
+<div class="app">
+
+  <!-- ============================ MASTHEAD ============================ -->
+  <header class="top">
+    <h1 class="brand-title"><a class="brand" href="./index.html" title="restart">
+      <span class="brand-mark" aria-hidden="true">&#9679;</span>
+      <span class="brand-name brand-default">LampType</span>
+      <span class="brand-name brand-sakura">Cherry Blossoms</span>
+    </a></h1>
+    <nav class="top-nav">
+      <button type="button" id="btn-history" class="text-btn">history</button>
+      <button type="button" id="btn-daynight" class="text-btn"
+              title="light / dark for the sakura theme">auto</button>
+      <select id="theme-select" class="theme-select" aria-label="colour theme">
+        <option value="lamp">lava lamp</option>
+        <option value="paper">paper</option>
+        <option value="ink">ink</option>
+        <option value="linen">linen</option>
+        <option value="oxide">oxide</option>
+        <option value="iris">iris</option>
+        <option value="sakura">sakura blossoms</option>
+      </select>
+    </nav>
+  </header>
+
+  <main class="stage">
+
+    <!-- Screen readers are told the result here; the results screen itself
+         is a silent DOM swap. -->
+    <p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
+
+    <!-- ============================ TEST VIEW ============================ -->
+    <section id="view-test">
+
+      <!-- Settings read as a masthead byline: label, then the choices. -->
+      <div class="mode-bar" id="mode-bar">
+        <div class="mode-field">
+          <span class="field-label">mode</span>
+          <div class="mode-group">
+            <button type="button" class="mode-btn" data-mode="time">time</button>
+            <button type="button" class="mode-btn" data-mode="words">words</button>
+            <button type="button" class="mode-btn" data-mode="single">1 word</button>
+          </div>
+        </div>
+
+        <div class="mode-field">
+          <span class="field-label" id="length-label">length</span>
+          <div class="mode-group" id="mode-values"></div>
+        </div>
+
+        <div class="mode-field">
+          <span class="field-label">include</span>
+          <div class="mode-group">
+            <button type="button" class="mode-btn" data-toggle="punctuation">punctuation</button>
+            <button type="button" class="mode-btn" data-toggle="numbers">numbers</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="race" id="race" hidden aria-label="race progress">
+        <div class="race-lane">
+          <span class="race-label">you</span>
+          <div class="race-track"><div class="race-fill" id="race-you"></div></div>
+          <span class="race-wpm" id="race-you-wpm"></span>
+        </div>
+        <div class="race-lane opponent">
+          <span class="race-label">ai</span>
+          <div class="race-track"><div class="race-fill" id="race-ai"></div></div>
+          <span class="race-wpm" id="race-ai-wpm"></span>
+        </div>
+      </div>
+
+      <div id="typing-area" class="typing-area">
+        <div id="words" class="words">
+          <div id="caret" class="caret"></div>
+        </div>
+        <div id="focus-overlay" class="focus-overlay">click here or press any key to focus</div>
+      </div>
+
+      <input id="hidden-input" class="hidden-input" type="text"
+             autocomplete="off" autocapitalize="off" autocorrect="off"
+             spellcheck="false" tabindex="-1" aria-label="typing input">
+
+      <div class="live-bar" id="live-bar">
+        <span class="live-cell">
+          <span class="field-label" id="counter-label">left</span>
+          <span id="live-counter" class="live-counter">30</span>
+        </span>
+        <span class="live-cell live-cell-wpm">
+          <span class="field-label">speed</span>
+          <span id="live-wpm" class="live-wpm"></span>
+        </span>
+        <span class="live-spacer"></span>
+        <span class="actions">
+          <button type="button" id="btn-race" class="text-btn race-btn">start race</button>
+          <button type="button" id="btn-restart" class="icon-btn" title="restart test (tab)" aria-label="restart test">&#8635;</button>
+        </span>
+      </div>
+
+      <!-- WCAG 2.1.2 allows a component to hold Tab as long as the way out
+           is advertised. That is what the last item here is for. -->
+      <p class="hint">
+        <kbd>tab</kbd> restart &middot; <kbd>esc</kbd> restart &middot;
+        <kbd>ctrl</kbd>+<kbd>backspace</kbd> delete word &middot;
+        <kbd>shift</kbd>+<kbd>tab</kbd> leave the typing area
+      </p>
+    </section>
+
+    <!-- =========================== RESULTS VIEW =========================== -->
+    <section id="view-results" class="results" hidden>
+
+      <div class="results-head">
+        <div class="stat-big">
+          <div class="stat-label">words per minute</div>
+          <div class="stat-value" id="res-wpm">0</div>
+        </div>
+        <div class="stat-big secondary">
+          <div class="stat-label">accuracy</div>
+          <div class="stat-value" id="res-acc">0%</div>
+        </div>
+        <div class="results-flags">
+          <div class="race-result" id="race-result" hidden>
+            <span class="race-outcome" id="race-outcome"></span>
+            <span class="race-detail" id="race-detail"></span>
+          </div>
+          <div class="pb-badge" id="res-pb" hidden>new personal best</div>
+          <p class="result-note" id="res-note" hidden>too short to record</p>
+        </div>
+      </div>
+
+      <div class="results-chart">
+        <canvas id="res-chart" aria-label="words per minute over time"></canvas>
+      </div>
+
+      <div class="results-meta">
+        <div class="stat-small"><div class="stat-label">test</div><div class="stat-sub" id="res-type">&mdash;</div></div>
+        <div class="stat-small"><div class="stat-label">raw</div><div class="stat-sub" id="res-raw">0</div></div>
+        <div class="stat-small">
+          <div class="stat-label">characters</div>
+          <div class="stat-sub" id="res-chars" title="correct / incorrect / extra / missed">0/0/0/0</div>
+        </div>
+        <div class="stat-small"><div class="stat-label">consistency</div><div class="stat-sub" id="res-cons">0%</div></div>
+        <div class="stat-small"><div class="stat-label">time</div><div class="stat-sub" id="res-time">0s</div></div>
+      </div>
+
+      <div class="results-foot">
+        <p class="hint"><kbd>tab</kbd> next test</p>
+        <div class="actions">
+          <button type="button" id="btn-next" class="icon-btn" title="next test (tab)" aria-label="next test">&#8635;</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================== AD SLOT ==============================
+       A reserved 728x90 leaderboard (320x50 on narrow screens). The box
+       keeps its height whether or not anything fills it, so the page
+       never shifts when an ad loads. Drop the ad tag inside .ad-inner and
+       delete the placeholder line. -->
+  <aside class="ad-slot" aria-label="advertisement">
+    <!-- The label stays put when a real ad replaces the placeholder below
+         it: advertising has to be visibly identifiable, not just labelled
+         for assistive tech. -->
+    <p class="ad-label">Advertisement</p>
+    <div class="ad-inner" id="ad-leaderboard">
+      <span class="ad-note">ad space &middot; 728 &times; 90</span>
+    </div>
+  </aside>
+
+  <footer class="bottom">
+    <p class="bottom-claim">
+      Your keystrokes and your results never leave this browser. Ads on this
+      page are served by Google, which does set cookies &mdash;
+      <a href="privacy.html">what that means</a>.
+    </p>
+    <nav class="bottom-nav" aria-label="Site">
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+    </nav>
+  </footer>
+</div>
+
+<!-- ============================ HISTORY MODAL ============================ -->
+<div id="history-modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="history-title">
+    <div class="modal-head">
+      <h2 id="history-title">history</h2>
+      <button type="button" class="icon-btn small" data-close aria-label="close">&#10005;</button>
+    </div>
+
+    <h3 class="modal-sub">personal bests</h3>
+    <div id="pb-grid" class="pb-grid"></div>
+
+    <h3 class="modal-sub">recent tests</h3>
+    <div class="table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr><th>wpm</th><th>raw</th><th>acc</th><th>test</th><th>date</th></tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-foot">
+      <button type="button" id="btn-clear-history" class="text-btn danger">clear history</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/words.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/reveal.js"></script>
+<script src="js/lamp.js"></script>
+<script src="js/petals.js"></script>
+<script src="js/race.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

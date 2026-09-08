@@ -1,0 +1,273 @@
+/* =================================================================
+   sakura.css - the "Sakura Blossoms" theme.
+
+   This is a full skin rather than a palette swap, so unlike the other
+   themes it lives in its own file: it changes typography, column width,
+   the order of the stats row, caret behaviour and error styling, and it
+   drives the petal canvas through --petal-* variables.
+
+   Everything here is scoped to [data-theme="sakura"] and has no effect
+   on the other themes.
+
+   Light is the default. Dark ("night hanami") follows the OS unless the
+   day/night control pins it, which sets data-mode on <html>.
+   ================================================================= */
+
+[data-theme="sakura"] {
+  --bg:          #FDF7F8;  /* warm off-white, faint pink undertone */
+  --sub:         #CDB8BE;  /* untyped text - deliberately recessive */
+  --text:        #3B2F35;  /* soft near-black ink, never pure black */
+  --caret:       #E58FA6;
+  --error:       #C2566E;  /* dusty rose-red */
+  --main:        #D4728C;  /* accent */
+  --muted:       #B9A3AA;  /* UI labels */
+  --sub-alt:     #F5E8EB;  /* chart grid + history cards only */
+  --rule:        #F0DEE3;  /* hairline rules */
+  --error-extra: #DDA9B5;
+
+  --petal-a: #F8C8D4;
+  --petal-b: #FFDDE4;
+  --petal-alpha-min: .15;
+  --petal-alpha-max: .35;
+
+  --font-serif: "Zen Old Mincho", "Cormorant Garamond", Georgia,
+                "Times New Roman", serif;
+  --font-type: "JetBrains Mono", "IBM Plex Mono", var(--font-mono);
+}
+
+/* --- night hanami: follows the OS unless pinned to light --- */
+@media (prefers-color-scheme: dark) {
+  [data-theme="sakura"]:not([data-mode="light"]) {
+    --bg:          #15121A;  /* deep plum-indigo */
+    --sub:         #4C4250;
+    --text:        #F2E9ED;
+    --caret:       #F2A2B8;
+    --error:       #D96B84;
+    --main:        #E2879E;  /* derived: the brief gives no dark accent */
+    --muted:       #8A7B87;
+    --sub-alt:     #1E1926;
+    --rule:        #2A2233;
+    --error-extra: #8A4358;
+
+    --petal-a: #E9A8BC;
+    --petal-b: #E9A8BC;
+    --petal-alpha-min: .16;
+    --petal-alpha-max: .36;
+  }
+}
+
+/* --- night hanami, pinned by the day/night control --- */
+[data-theme="sakura"][data-mode="dark"] {
+  --bg:          #15121A;
+  --sub:         #4C4250;
+  --text:        #F2E9ED;
+  --caret:       #F2A2B8;
+  --error:       #D96B84;
+  --main:        #E2879E;
+  --muted:       #8A7B87;
+  --sub-alt:     #1E1926;
+  --rule:        #2A2233;
+  --error-extra: #8A4358;
+
+  --petal-a: #E9A8BC;
+  --petal-b: #E9A8BC;
+  --petal-alpha-min: .16;
+  --petal-alpha-max: .36;
+}
+
+/* ============================ canvas + branch ============================
+   The petal canvas sits behind everything and never takes a pointer
+   event. .app is promoted to a stacking context so it always wins. */
+
+.petal-canvas,
+.sakura-branch {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.petal-canvas { width: 100vw; height: 100vh; }
+
+.sakura-branch {
+  display: none;
+  width: min(260px, 32vw);
+  height: auto;
+  opacity: .15;
+}
+[data-theme="sakura"] .sakura-branch { display: block; }
+
+.app { position: relative; z-index: 1; }
+
+/* ============================== typography ============================== */
+
+/* The wordmark changes with the theme, so both live in the markup and
+   only one is ever displayed. */
+.brand-sakura { display: none; }
+[data-theme="sakura"] .brand-default { display: none; }
+[data-theme="sakura"] .brand-sakura { display: inline; }
+[data-theme="sakura"] .brand-mark { display: none; }
+
+[data-theme="sakura"] .brand-name {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: .12em;
+  text-transform: none;
+  color: var(--main);
+}
+
+[data-theme="sakura"] .words {
+  font-family: var(--font-type);
+  font-size: 25px;
+  line-height: 1.9;
+  font-weight: 400;
+}
+
+/* '1 word' shows a single word, so it can be set much larger. */
+[data-theme="sakura"] .words.single { font-size: 44px; }
+
+/* Stats and labels recede: small, uppercase, widely tracked, muted. */
+[data-theme="sakura"] .live-counter,
+[data-theme="sakura"] .live-wpm,
+[data-theme="sakura"] .field-label,
+[data-theme="sakura"] .stat-label,
+[data-theme="sakura"] .hint,
+[data-theme="sakura"] .mode-btn,
+[data-theme="sakura"] .text-btn,
+[data-theme="sakura"] .theme-select {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+
+[data-theme="sakura"] .mode-btn.active { color: var(--main); }
+[data-theme="sakura"] .mode-btn:hover,
+[data-theme="sakura"] .text-btn:hover { color: var(--text); }
+[data-theme="sakura"] .hint { opacity: .7; }
+[data-theme="sakura"] kbd { background: none; color: var(--muted); padding: 0; }
+
+/* ================================ layout ================================
+   Single centred column; the stats row moves below the typing area. */
+
+[data-theme="sakura"] .app { max-width: 720px; gap: 2rem; }
+
+[data-theme="sakura"] #view-test {
+  display: flex;
+  flex-direction: column;
+}
+[data-theme="sakura"] .mode-bar    { order: 1; }
+[data-theme="sakura"] .race        { order: 2; }
+[data-theme="sakura"] .typing-area { order: 3; }
+[data-theme="sakura"] .live-bar    { order: 4; }
+[data-theme="sakura"] .actions     { order: 5; }
+[data-theme="sakura"] .hint        { order: 6; }
+
+[data-theme="sakura"] .race-label,
+[data-theme="sakura"] .race-wpm {
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+[data-theme="sakura"] .race-track { background: var(--sub-alt); }
+[data-theme="sakura"] .race-lane.opponent .race-fill { background: var(--sub); }
+
+[data-theme="sakura"] .live-bar {
+  order: 3;
+  margin: 1.75rem 0 0;
+  min-height: 1.5rem;
+  justify-content: center;
+  gap: 1.5rem;
+  color: var(--muted);
+}
+
+/* No cards, no borders, no shadows - the mode bar is just text. */
+[data-theme="sakura"] .mode-bar {
+  background: none;
+  padding: .4rem 0 .8rem;
+  margin-bottom: 1.5rem;
+}
+[data-theme="sakura"] .mode-sep { background: var(--sub); opacity: .4; }
+[data-theme="sakura"] .actions { margin-top: 1.25rem; }
+[data-theme="sakura"] .icon-btn:hover,
+[data-theme="sakura"] .icon-btn:focus-visible { background: none; color: var(--main); }
+
+/* ============================ stats behaviour ============================
+   The brief asks for no live-updating number competing with the line
+   being typed, so the running wpm readout is dropped entirely here. The
+   countdown stays: it is the test's clock, not a score. */
+
+[data-theme="sakura"] .live-cell-wpm { display: none; }
+
+/* Faded while typing, full strength once the test ends. */
+[data-theme="sakura"] .live-bar.typing { opacity: .4; }
+
+/* =============================== the caret ===============================
+   A solid bar that eases between characters and breathes rather than
+   blinking on and off. */
+
+[data-theme="sakura"] .caret {
+  width: 2px;
+  border-radius: 1px;
+  transition: transform .1s cubic-bezier(.22, .61, .36, 1), opacity .2s ease;
+  animation: sakura-caret 1.1s ease-in-out infinite;
+}
+
+@keyframes sakura-caret {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .15; }
+}
+
+/* ============================ typed characters ===========================
+   Wrong characters take the error colour plus a hairline underline.
+   No backgrounds, and no doubled-up word underline. */
+
+[data-theme="sakura"] .letter.incorrect {
+  text-decoration: underline;
+  text-decoration-color: var(--error);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+}
+
+[data-theme="sakura"] .letter.extra {
+  text-decoration: underline;
+  text-decoration-color: var(--error-extra);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+}
+
+[data-theme="sakura"] .word.error { border-bottom-color: transparent; }
+
+/* ========================= day / night control ==========================
+   Only meaningful in this theme, so it is hidden everywhere else. */
+
+#btn-daynight { display: none; }
+[data-theme="sakura"] #btn-daynight { display: inline-block; }
+
+/* ============================ results + modal ===========================
+   Not covered by the brief; kept structurally as-is and simply
+   re-coloured, with the same restraint applied to surfaces. */
+
+[data-theme="sakura"] .stat-value { font-family: var(--font-serif); font-weight: 300; }
+[data-theme="sakura"] .pb-badge { font-weight: 400; letter-spacing: .08em; }
+[data-theme="sakura"] .modal-card { border-color: var(--sub-alt); }
+[data-theme="sakura"] .modal-head h2 { font-family: var(--font-serif); font-weight: 300; }
+
+/* ============================== reduced motion ==========================
+   The global reduce block already stills the caret and transitions; the
+   petals freeze themselves in petals.js. Nothing extra is needed here,
+   but the branch and canvas must stay put rather than disappear. */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="sakura"] .caret { animation: none; opacity: 1; }
+}
+
+/* ================================ mobile ================================ */
+
+@media (max-width: 640px) {
+  [data-theme="sakura"] .words { font-size: 21px; line-height: 1.8; }
+  [data-theme="sakura"] .brand-name { font-size: 24px; }
+  .sakura-branch { width: 40vw; opacity: .12; }
+}
