@@ -644,12 +644,15 @@ kbd {
    The height is reserved whether or not anything fills it, so nothing
    below moves when an ad arrives. */
 
+/* The text column is 48rem wide, which leaves 704px inside the gutters -
+   24px short of a 728x90 leaderboard. The slot reclaims the gutter so a
+   fixed-size unit fits without being clipped or scaled. */
 .ad-slot {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: .5rem;
-  margin: 3rem 0 1.5rem;
+  margin: 3rem calc(var(--gutter) * -1) 1.5rem;
 }
 
 /* Stays visible once a real ad fills the box below it. */
@@ -857,6 +860,7 @@ kbd {
   .live-bar { gap: 1.25rem; flex-wrap: wrap; }
 
   /* A leaderboard does not fit: fall back to the mobile banner size. */
+  .ad-slot { margin-left: 0; margin-right: 0; }
   .ad-inner { width: 320px; height: 50px; }
 }
 
