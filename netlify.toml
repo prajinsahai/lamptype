@@ -1,0 +1,14 @@
+# Netlify settings for LampType.
+#
+# There is no build step. The site is plain HTML, CSS and JS with no
+# dependencies, so Netlify publishes the repository root exactly as it is.
+# With this file present, Netlify needs nothing typed into its UI.
+
+[build]
+  publish = "."
+
+# Security and caching headers deliberately live in _headers rather than
+# here. Netlify reads that file automatically, and keeping a single copy
+# means the policy cannot drift from the one Cloudflare Pages would use.
+#
+# 404.html is served automatically for unmatched paths - no rule needed.
