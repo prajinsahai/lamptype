@@ -15,6 +15,31 @@ window.TT = window.TT || {};
   const VISIBLE_LINES = 3;
   const CARET_IDLE_MS = 1000;
 
+  /* Caret smoothing. The caret chases its target on an exponential curve
+     driven by requestAnimationFrame rather than by a CSS transition,
+     because a transition restarted on every keystroke re-eases from
+     wherever it had got to - which is what makes fast typing look like it
+     is stuttering. An exponential approach has no restart and no velocity
+     discontinuity: it is simply always heading for the latest target. */
+  const CARET_TAU = 0.030;    // seconds to close ~63% of the gap
+  const CARET_SNAP_PX = 72;   // a jump this big is a new line or a new word
+  const CARET_DONE_PX = 0.05; // close enough to stop the loop
+  const CARET_MAX_DT = 0.05;
+
+  /* Frame-rate independent: the same curve whether frames arrive at 60Hz,
+     144Hz or irregularly. */
+  function approach(current, target, dt, tau) {
+    if (!(tau > 0)) return target;
+    return current + (target - current) * (1 - Math.exp(-dt / tau));
+  }
+
+  /* Smoothing forward across a line is the point. Sliding the caret
+     backwards across a whole line on a wrap, or across a word swap in
+     '1 word', is not - those want to be instant. */
+  function shouldSnap(dx, dy) {
+    return Math.abs(dy) > 0.5 || Math.abs(dx) > CARET_SNAP_PX;
+  }
+
   function createRenderer(dom, engine) {
     const wordEls = [];
     let lineHeight = 0;
@@ -22,6 +47,14 @@ window.TT = window.TT || {};
     let caretTimer = null;
     let resizeFrame = null;
     let activeEl = null;   // the shown word in '1 word' mode
+
+    /* Where the caret is drawn, and where it is heading. */
+    const caretAt = { x: 0, y: 0, h: 0 };
+    const caretTo = { x: 0, y: 0, h: 0 };
+    let caretPlaced = false;
+    let caretRaf = null;
+    let caretLast = 0;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     function makeWordEl(word) {
       const el = document.createElement('div');
@@ -57,20 +90,19 @@ window.TT = window.TT || {};
       el.style.animation = '';
     }
 
-    /* Distance from a letter to the words container. Walking the
-       offsetParent chain rather than reading one offsetLeft keeps the
-       caret right no matter what is positioned or transformed between
-       them. */
-    function offsetWithin(el, ancestor) {
-      let x = 0;
-      let y = 0;
-      let node = el;
-      while (node && node !== ancestor) {
-        x += node.offsetLeft;
-        y += node.offsetTop;
-        node = node.offsetParent;
-      }
-      return { x, y };
+    /* Where a letter sits inside the words container, in real fractional
+       pixels.
+
+       This used to walk the offsetParent chain adding up offsetLeft, and
+       offsetLeft is rounded to whole pixels at every hop. Against a
+       proportional serif whose advances land on fractions - 25.03, 16.39,
+       11.86 - that rounding moved the caret in uneven whole-pixel steps
+       and read as jitter. Rects are fractional, so the caret now lands
+       exactly where the glyph does. */
+    function rectWithin(el) {
+      const a = el.getBoundingClientRect();
+      const b = dom.words.getBoundingClientRect();
+      return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height };
     }
 
     /* Row pitch measured from the DOM rather than assumed from CSS, so
@@ -134,6 +166,7 @@ window.TT = window.TT || {};
       scrolledLines = 0;
       applyScroll();
       measure();
+      caretPlaced = false;   // a new passage places the caret outright
       updateCaret();
     }
 
@@ -197,39 +230,90 @@ window.TT = window.TT || {};
       applyScroll();
     }
 
-    function updateCaret() {
+    /* The caret's target: the left edge of the next character to type, or
+       the right edge of the last one when the word is full. */
+    function measureCaret() {
       const s = engine.state;
       const wordEl = wordEls[s.wordIndex];
-      if (!wordEl) return;
+      if (!wordEl) return null;
 
       const letters = wordEl.children;
       const typedLen = (s.typed[s.wordIndex] || '').length;
-      let x;
-      let y;
-      let h;
 
       if (typedLen < letters.length) {
-        const span = letters[typedLen];
-        const at = offsetWithin(span, dom.words);
-        x = at.x;
-        y = at.y;
-        h = span.offsetHeight;
-      } else if (letters.length > 0) {
-        const span = letters[letters.length - 1];
-        const at = offsetWithin(span, dom.words);
-        x = at.x + span.offsetWidth;
-        y = at.y;
-        h = span.offsetHeight;
-      } else {
-        const at = offsetWithin(wordEl, dom.words);
-        x = at.x;
-        y = at.y;
-        h = wordEl.offsetHeight;
+        const r = rectWithin(letters[typedLen]);
+        return { x: r.x, y: r.y, h: r.h };
+      }
+      if (letters.length > 0) {
+        const r = rectWithin(letters[letters.length - 1]);
+        return { x: r.x + r.w, y: r.y, h: r.h };
+      }
+      const r = rectWithin(wordEl);
+      return { x: r.x, y: r.y, h: r.h };
+    }
+
+    function paintCaret() {
+      dom.caret.style.height = caretAt.h + 'px';
+      /* translate3d keeps this on the compositor: moving the caret never
+         costs a layout or a paint. */
+      dom.caret.style.transform =
+        'translate3d(' + caretAt.x + 'px,' + caretAt.y + 'px,0)';
+    }
+
+    function snapCaret(to) {
+      caretAt.x = to.x;
+      caretAt.y = to.y;
+      caretAt.h = to.h;
+      paintCaret();
+    }
+
+    function caretFrame(now) {
+      const t = now / 1000;
+      const dt = caretLast ? Math.min(CARET_MAX_DT, t - caretLast) : 1 / 60;
+      caretLast = t;
+
+      caretAt.x = approach(caretAt.x, caretTo.x, dt, CARET_TAU);
+      caretAt.y = caretTo.y;
+      caretAt.h = caretTo.h;
+      paintCaret();
+
+      if (Math.abs(caretTo.x - caretAt.x) < CARET_DONE_PX) {
+        /* Land exactly on the target rather than asymptotically near it,
+           then stop burning frames until the next keystroke. */
+        snapCaret(caretTo);
+        caretRaf = null;
+        return;
+      }
+      caretRaf = requestAnimationFrame(caretFrame);
+    }
+
+    function startCaretLoop() {
+      if (caretRaf !== null) return;
+      caretLast = 0;
+      caretRaf = requestAnimationFrame(caretFrame);
+    }
+
+    function updateCaret() {
+      const to = measureCaret();
+      if (!to) return;
+
+      const jumped = shouldSnap(to.x - caretAt.x, to.y - caretAt.y);
+      caretTo.x = to.x;
+      caretTo.y = to.y;
+      caretTo.h = to.h;
+
+      /* The scroll decision is made on the target, not on the smoothed
+         position, so a line change is never delayed by the easing. */
+      updateScroll(to.y);
+
+      if (!caretPlaced || jumped || reduceMotion.matches) {
+        caretPlaced = true;
+        if (caretRaf !== null) { cancelAnimationFrame(caretRaf); caretRaf = null; }
+        snapCaret(to);
+        return;
       }
 
-      dom.caret.style.height = h + 'px';
-      dom.caret.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-      updateScroll(y);
+      startCaretLoop();
     }
 
     /* Stop the blink while keys are actually landing. */
@@ -268,4 +352,6 @@ window.TT = window.TT || {};
   }
 
   TT.createRenderer = createRenderer;
+  /* Exported for tests. */
+  TT.caretMath = { approach, shouldSnap, CARET_TAU, CARET_SNAP_PX };
 })(window.TT);

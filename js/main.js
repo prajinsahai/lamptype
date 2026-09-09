@@ -135,6 +135,31 @@ window.TT = window.TT || {};
       });
     }
 
+    /* ---------------------------- the cursor ----------------------------
+       Hidden on the first keystroke of a run and restored by the smallest
+       mouse movement, the way a video player does it. Nothing else brings
+       it back, so it can never be lost: moving the mouse is exactly the
+       gesture that means you want to point at something. */
+
+    let cursorHidden = false;
+
+    function hideCursor() {
+      if (cursorHidden) return;
+      cursorHidden = true;
+      document.body.classList.add('typing-cursor-hidden');
+    }
+
+    function showCursor() {
+      if (!cursorHidden) return;
+      cursorHidden = false;
+      document.body.classList.remove('typing-cursor-hidden');
+    }
+
+    /* Passive: this fires on every mouse move and must never hold up a
+       frame. */
+    document.addEventListener('mousemove', showCursor, { passive: true });
+    document.addEventListener('mousedown', showCursor, { passive: true });
+
     function focusInput() {
       try {
         dom.input.focus({ preventScroll: true });
@@ -292,10 +317,13 @@ window.TT = window.TT || {};
     engine.on('key', (e) => {
       petals.onKeystroke(!e.correct);
       lamp.onKeystroke(!e.correct);
+      hideCursor();
     });
 
     engine.on('finish', (result) => {
       ui.setTyping(false);
+      /* The run is over and there are buttons to click. */
+      showCursor();
 
       const typedAnything =
         result.chars.correct + result.chars.incorrect + result.chars.extra > 0;

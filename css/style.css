@@ -19,9 +19,19 @@
   --font-mono:  ui-monospace, "Cascadia Mono", "SF Mono", Consolas,
                 "Liberation Mono", monospace;
 
-  --measure: 48rem;      /* the text column */
-  --gutter: 2rem;
+  --measure: 52rem;      /* the text column */
+  --gutter: 2.5rem;
   --rule-w: 1px;
+
+  /* One spacing scale, used everywhere. Before this the page had a dozen
+     one-off margins between .85rem and 3rem, which is what made it read
+     as crowded in some places and loose in others. */
+  --space-1: .5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.25rem;
+  --space-5: 3.5rem;
+  --space-6: 5rem;
 
   --ease: cubic-bezier(.22, .61, .36, 1);
 }
@@ -116,7 +126,7 @@ button, select, input { font: inherit; color: inherit; }
 .app {
   max-width: var(--measure);
   margin: 0 auto;
-  padding: 3.5rem var(--gutter) 2rem;
+  padding: var(--space-5) var(--gutter) var(--space-4);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -130,8 +140,8 @@ button, select, input { font: inherit; color: inherit; }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1.5rem;
-  padding-bottom: .85rem;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
   border-bottom: var(--rule-w) solid var(--rule);
 }
 
@@ -144,15 +154,22 @@ button, select, input { font: inherit; color: inherit; }
 }
 
 .brand {
+  position: relative;
   display: inline-flex;
   align-items: baseline;
-  gap: .55rem;
   text-decoration: none;
   color: var(--text);
 }
 
+/* Hung in the gutter rather than set inline. Inline, the mark and its gap
+   pushed the wordmark ~14px to the right of every other element on the
+   page, so the masthead never lined up with the column under it. */
 .brand-mark {
+  position: absolute;
+  right: 100%;
+  margin-right: .5rem;
   font-size: .5rem;
+  line-height: inherit;
   color: var(--main);
   transform: translateY(-.35em);
 }
@@ -226,8 +243,8 @@ a.text-btn { text-decoration: none; }
   align-items: baseline;
   /* Row gap first: if the three fields ever do wrap, they should stay a
      tight block rather than drifting apart. */
-  gap: .85rem 1.5rem;
-  padding: 1rem 0 .9rem;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0 var(--space-2);
   border-bottom: var(--rule-w) solid var(--rule);
   transition: opacity .4s ease;
 }
@@ -278,7 +295,7 @@ a.text-btn { text-decoration: none; }
 
 .typing-area {
   position: relative;
-  margin: 2.75rem 0 0;
+  margin: var(--space-5) 0;
   min-height: 11rem;
   display: flex;
   align-items: flex-start;
@@ -352,13 +369,16 @@ a.text-btn { text-decoration: none; }
    A hairline that slides between characters and breathes rather than
    blinking hard on and off. */
 
+/* No transform transition here on purpose: render.js drives the caret on
+   an exponential approach every frame. A CSS transition would be
+   restarted by each keystroke and re-ease from wherever it had reached,
+   which is exactly the stutter this replaces. */
 .caret {
   position: absolute;
   top: 0;
   left: 0;
   width: 1.5px;
   background: var(--caret);
-  transition: transform .09s var(--ease), height .09s var(--ease);
   animation: caret-breathe 1.15s ease-in-out infinite;
   will-change: transform;
 }
@@ -392,6 +412,12 @@ a.text-btn { text-decoration: none; }
 }
 .typing-area.blurred .focus-overlay { opacity: 1; }
 
+/* Hidden while you type, back the instant the mouse moves. The pointer
+   sits over the words on a typing test more often than not, and a cursor
+   parked on the line you are reading is genuinely distracting. */
+body.typing-cursor-hidden,
+body.typing-cursor-hidden * { cursor: none !important; }
+
 .hidden-input {
   position: absolute;
   left: -9999px;
@@ -407,9 +433,9 @@ a.text-btn { text-decoration: none; }
 .live-bar {
   display: flex;
   align-items: baseline;
-  gap: 2.25rem;
+  gap: var(--space-4);
   margin-top: 0;
-  padding-top: .9rem;
+  padding-top: var(--space-3);
   border-top: var(--rule-w) solid var(--rule);
   transition: opacity .4s ease;
 }
@@ -457,7 +483,7 @@ a.text-btn { text-decoration: none; }
 .race-btn.racing { color: var(--main); }
 
 .hint {
-  margin: 1rem 0 0;
+  margin: var(--space-3) 0 0;
   opacity: .75;
 }
 
@@ -480,7 +506,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: .55rem;
-  margin-top: 1.5rem;
+  margin-top: var(--space-4);
 }
 
 .race-lane {
@@ -531,8 +557,8 @@ kbd {
 .results {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding-top: 2.5rem;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
 }
 
 /* The panel lifts in once, under the numbers settling. */
@@ -548,8 +574,8 @@ kbd {
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 3rem;
-  padding-bottom: 1.25rem;
+  gap: var(--space-5);
+  padding-bottom: var(--space-3);
   border-bottom: var(--rule-w) solid var(--rule);
 }
 
@@ -617,8 +643,8 @@ kbd {
 .results-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 1.5rem;
-  padding-top: 1.25rem;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
   border-top: var(--rule-w) solid var(--rule);
 }
 
@@ -651,8 +677,8 @@ kbd {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .5rem;
-  margin: 3rem calc(var(--gutter) * -1) 1.5rem;
+  gap: var(--space-1);
+  margin: var(--space-6) 0 var(--space-4);
 }
 
 /* Stays visible once a real ad fills the box below it. */
@@ -682,8 +708,8 @@ kbd {
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: .75rem 2rem;
-  padding-top: 1.25rem;
+  gap: .75rem var(--space-4);
+  padding-top: var(--space-3);
   border-top: var(--rule-w) solid var(--rule);
 }
 
@@ -847,7 +873,7 @@ kbd {
 /* =============================== responsive =============================== */
 
 @media (max-width: 720px) {
-  .app { padding: 2.25rem 1.25rem 1.5rem; }
+  .app { padding: var(--space-4) var(--space-3) var(--space-3); }
   .top { flex-wrap: wrap; gap: .75rem; }
   .mode-bar { gap: 1rem 1.25rem; }
   .mode-field { flex-wrap: wrap; gap: .5rem .75rem; }
@@ -860,7 +886,6 @@ kbd {
   .live-bar { gap: 1.25rem; flex-wrap: wrap; }
 
   /* A leaderboard does not fit: fall back to the mobile banner size. */
-  .ad-slot { margin-left: 0; margin-right: 0; }
   .ad-inner { width: 320px; height: 50px; }
 }
 

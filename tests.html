@@ -50,6 +50,7 @@
 <script src="js/lamp.js"></script>
 <script src="js/petals.js"></script>
 <script src="js/race.js"></script>
+<script src="js/render.js"></script>
 <script src="js/ui.js"></script>
 <script>
 (function () {
@@ -664,6 +665,75 @@
     w.backspace(false);
     eq(w.state.wordIndex, 0, 'words mode still crosses back into a wrong word');
     w.finish();
+  });
+
+  /* --------------------------------- caret -------------------------------- */
+
+  const CM = TT.caretMath;
+
+  check('caret: an approach closes the gap and never overshoots', () => {
+    let x = 0;
+    for (let i = 0; i < 240; i++) {
+      const next = CM.approach(x, 100, 1 / 60, CM.CARET_TAU);
+      assert(next >= x - 1e-9, 'moved backwards');
+      assert(next <= 100 + 1e-9, 'overshot the target: ' + next);
+      x = next;
+    }
+    assert(x > 99.99, 'never arrived: ' + x);
+  });
+
+  check('caret: smoothing must not read as lag', () => {
+    /* The two numbers that decide how this feels. Most of the distance
+       inside a couple of frames so it never trails your fingers, and
+       visually arrived within about a tenth of a second - comfortably
+       faster than the gap between keystrokes at 120wpm. */
+    const after = (frames) => {
+      let x = 0;
+      for (let i = 0; i < frames; i++) x = CM.approach(x, 100, 1 / 60, CM.CARET_TAU);
+      return x;
+    };
+    assert(after(2) > 60, 'only ' + after(2).toFixed(1) + '% along after 33ms');
+    assert(after(6) > 94, 'only ' + after(6).toFixed(1) + '% along after 100ms');
+  });
+
+  check('caret: the same curve at any frame rate', () => {
+    /* One 60Hz frame must land where four 240Hz frames land, or the caret
+       would move at different speeds on different monitors. */
+    let slow = CM.approach(0, 100, 1 / 60, CM.CARET_TAU);
+    let fast = 0;
+    for (let i = 0; i < 4; i++) fast = CM.approach(fast, 100, 1 / 240, CM.CARET_TAU);
+    near(fast, slow, 0.001, '60Hz vs 240Hz');
+
+    let stalled = CM.approach(0, 100, 1 / 15, CM.CARET_TAU);
+    let steady = 0;
+    for (let i = 0; i < 4; i++) steady = CM.approach(steady, 100, 1 / 60, CM.CARET_TAU);
+    near(stalled, steady, 0.001, 'a dropped frame lands in the same place');
+  });
+
+  check('caret: a zero time constant just snaps', () => {
+    eq(CM.approach(0, 100, 1 / 60, 0), 100);
+    eq(CM.approach(0, 100, 0, CM.CARET_TAU), 0, 'no time, no movement');
+  });
+
+  check('caret: smooths along a line, snaps across one', () => {
+    /* Typing forward, one character at a time. */
+    assert(!CM.shouldSnap(8, 0), 'a narrow character should smooth');
+    assert(!CM.shouldSnap(25, 0), 'a wide character should smooth');
+    assert(!CM.shouldSnap(-12, 0), 'backspace should smooth');
+
+    /* A wrap, a word swap in 1-word mode, a jump back to a previous word.
+       Easing across these would slide the caret over the whole line. */
+    assert(CM.shouldSnap(-640, 58), 'a line wrap must snap');
+    assert(CM.shouldSnap(0, 58), 'a change of line must snap');
+    assert(CM.shouldSnap(-300, 0), 'a long jump on one line must snap');
+    assert(CM.shouldSnap(0, -58), 'scrolling back up must snap');
+  });
+
+  check('caret: the snap threshold clears the widest character', () => {
+    /* A single keystroke must never trip the snap, or typing would stutter
+       exactly where it is meant to be smooth. */
+    assert(CM.CARET_SNAP_PX > 40, 'threshold too low: ' + CM.CARET_SNAP_PX);
+    assert(CM.CARET_SNAP_PX < 200, 'threshold so high a wrap would ease');
   });
 
   /* ------------------------------- lava lamp ------------------------------ */

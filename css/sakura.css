@@ -208,10 +208,12 @@
    A solid bar that eases between characters and breathes rather than
    blinking on and off. */
 
+/* Only the look. The movement belongs to render.js in every theme - a
+   transform transition here would put the stutter back. */
 [data-theme="sakura"] .caret {
   width: 2px;
   border-radius: 1px;
-  transition: transform .1s cubic-bezier(.22, .61, .36, 1), opacity .2s ease;
+  transition: opacity .2s ease;
   animation: sakura-caret 1.1s ease-in-out infinite;
 }
 
