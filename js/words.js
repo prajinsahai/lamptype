@@ -41,24 +41,31 @@ window.TT = window.TT || {};
 
   const SENTENCE_ENDS = ['.', '.', '.', '.', '?', '!'];
 
-  const randomInt = (max) => Math.floor(Math.random() * max);
-  const pick = (arr) => arr[randomInt(arr.length)];
+  /* Every draw goes through an injected generator rather than calling
+     Math.random directly, so a seeded one produces the same passage in
+     two different browsers - which is what a shared race needs. It
+     defaults to Math.random, so nothing that does not care has to pass
+     anything. */
+  const randomInt = (rnd, max) => Math.floor(rnd() * max);
+  const pick = (rnd, arr) => arr[randomInt(rnd, arr.length)];
 
   function capitalize(word) {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
 
   /* 1 to 4 digits, never with a leading zero. */
-  function randomNumber() {
-    const digits = 1 + randomInt(4);
-    let out = String(1 + randomInt(9));
-    for (let i = 1; i < digits; i++) out += randomInt(10);
+  function randomNumber(random) {
+    const rnd = random || Math.random;
+    const digits = 1 + randomInt(rnd, 4);
+    let out = String(1 + randomInt(rnd, 9));
+    for (let i = 1; i < digits; i++) out += randomInt(rnd, 10);
     return out;
   }
 
   /* Mutates `list` in place: sentence casing, terminators, and the
      occasional comma, quote, bracket or possessive. */
-  function punctuate(list) {
+  function punctuate(list, random) {
+    const rnd = random || Math.random;
     let startOfSentence = true;
 
     for (let i = 0; i < list.length; i++) {
@@ -71,11 +78,11 @@ window.TT = window.TT || {};
       }
 
       if (isLast) {
-        list[i] = w + pick(SENTENCE_ENDS);
+        list[i] = w + pick(rnd, SENTENCE_ENDS);
         break;
       }
 
-      const roll = Math.random();
+      const roll = rnd();
       if (roll < 0.03) {
         w = '"' + w + '"';
       } else if (roll < 0.05) {
@@ -89,7 +96,7 @@ window.TT = window.TT || {};
       } else if (roll < 0.22) {
         w += ',';
       } else if (roll < 0.35) {
-        w += pick(SENTENCE_ENDS);
+        w += pick(rnd, SENTENCE_ENDS);
         startOfSentence = true;
       }
 
@@ -106,28 +113,31 @@ window.TT = window.TT || {};
    * @param {object} [opts]
    * @param {boolean} [opts.punctuation]  add casing and punctuation
    * @param {boolean} [opts.numbers]      sprinkle in numeric tokens
+   * @param {function} [opts.random]      draws in [0,1); seed it to make
+   *                                      two browsers build the same list
    * @returns {string[]}
    */
   function generate(count, opts) {
     const options = opts || {};
+    const rnd = options.random || Math.random;
     const total = Math.max(0, Math.floor(count) || 0);
     const list = [];
     let previous = '';
 
     for (let i = 0; i < total; i++) {
-      if (options.numbers && Math.random() < 0.07) {
-        list.push(randomNumber());
+      if (options.numbers && rnd() < 0.07) {
+        list.push(randomNumber(rnd));
         previous = '';
         continue;
       }
 
-      let word = pick(WORDS);
-      if (word === previous) word = pick(WORDS); // one retry, avoids obvious repeats
+      let word = pick(rnd, WORDS);
+      if (word === previous) word = pick(rnd, WORDS); // one retry, avoids obvious repeats
       previous = word;
       list.push(word);
     }
 
-    if (options.punctuation) punctuate(list);
+    if (options.punctuation) punctuate(list, rnd);
     return list;
   }
 

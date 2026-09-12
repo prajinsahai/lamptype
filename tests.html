@@ -50,6 +50,7 @@
 <script src="js/lamp.js"></script>
 <script src="js/petals.js"></script>
 <script src="js/race.js"></script>
+<script src="js/net.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>
 <script>
@@ -1151,6 +1152,304 @@
     }
   });
 
+
+  /* ----------------------------- shared race -----------------------------
+     Phase 0: everything a multiplayer race needs that is not a socket.
+     If the seed and the extrapolation are right, the network is a dumb
+     pipe; if they are wrong, no amount of server work rescues a race
+     that desyncs. */
+
+  const N = TT.netMath;
+  const W = TT.words;
+
+  /* ------------------------------ the seed ------------------------------ */
+
+  check('seed: the same seed produces the same passage', () => {
+    const opts = { punctuation: true, numbers: true };
+    const a = W.generate(60, Object.assign({ random: N.seedRandom(12345) }, opts));
+    const b = W.generate(60, Object.assign({ random: N.seedRandom(12345) }, opts));
+    eq(a.join(' '), b.join(' '));
+  });
+
+  check('seed: a plain word list is reproducible too', () => {
+    const a = W.generate(25, { random: N.seedRandom(7) });
+    const b = W.generate(25, { random: N.seedRandom(7) });
+    eq(a.join(' '), b.join(' '));
+    eq(a.length, 25);
+  });
+
+  check('seed: different seeds produce different passages', () => {
+    const a = W.generate(40, { random: N.seedRandom(1) }).join(' ');
+    const b = W.generate(40, { random: N.seedRandom(2) }).join(' ');
+    assert(a !== b, 'two seeds gave the same list');
+  });
+
+  check('seed: with no seed the generator still works, and varies', () => {
+    const a = W.generate(40).join(' ');
+    const b = W.generate(40).join(' ');
+    eq(W.generate(25).length, 25);
+    assert(a !== b, 'unseeded runs should not match');
+  });
+
+  check('seed: draws stay in [0,1) and do not repeat immediately', () => {
+    const rnd = N.seedRandom(99);
+    let previous = -1;
+    for (let i = 0; i < 200; i++) {
+      const x = rnd();
+      assert(x >= 0 && x < 1, 'draw out of range: ' + x);
+      assert(x !== previous, 'two identical draws in a row');
+      previous = x;
+    }
+  });
+
+  check('seed: a zero seed is still a usable generator', () => {
+    const a = W.generate(20, { random: N.seedRandom(0) }).join(' ');
+    const b = W.generate(20, { random: N.seedRandom(0) }).join(' ');
+    eq(a, b);
+    assert(a.length > 0, 'seed 0 produced nothing');
+  });
+
+  /* ------------------------------ the clock ------------------------------ */
+
+  check('clock: a symmetric round trip recovers the offset', () => {
+    /* Sent at 1000, back at 1100, and the server said 6050 - so the
+       server's clock read 6050 when ours read 1050: 5000 ahead. */
+    eq(N.clockOffset([{ t0: 1000, server: 6050, t1: 1100 }]), 5000);
+  });
+
+  check('clock: the median steps over one stalled round trip', () => {
+    const good = [
+      { t0: 0, server: 5000, t1: 100 },
+      { t0: 200, server: 5250, t1: 300 },
+      { t0: 400, server: 5450, t1: 500 }
+    ];
+    const withOutlier = good.concat([{ t0: 600, server: 5650, t1: 4000 }]);
+    /* A mean would be dragged down by more than a second. */
+    near(N.clockOffset(withOutlier), 4950, 120);
+  });
+
+  check('clock: no samples means no correction, not NaN', () => {
+    eq(N.clockOffset([]), 0);
+    eq(N.clockOffset(null), 0);
+    eq(N.clockOffset([null, {}, { t0: 1 }]), 0);
+  });
+
+  check('clock: a reply that arrived before it was sent is discarded', () => {
+    eq(N.clockOffset([{ t0: 500, server: 900, t1: 100 }]), 0);
+  });
+
+  /* ------------------------------- a lane ------------------------------- */
+
+  check('lane: a peer with no news of it sits on the start line', () => {
+    const p = N.createPeer('a', 'ana', 100);
+    eq(p.positionAt(0), 0);
+    eq(p.positionAt(30), 0);
+  });
+
+  check('lane: one update gives a position but no speed to run on', () => {
+    const p = N.createPeer('a', 'ana', 100);
+    p.update(10, 1);
+    eq(p.rate(), 0);
+    eq(p.positionAt(5), 10);
+  });
+
+  check('lane: two updates set a rate the lane runs on between them', () => {
+    const p = N.createPeer('a', 'ana', 500);
+    p.update(10, 1);
+    p.update(20, 2);          // 10 characters in 1 second
+    eq(p.rate(), 10);
+    eq(p.positionAt(2), 20);
+    eq(p.positionAt(2.5), 25);
+  });
+
+  check('lane: the extrapolation stops at the finish line', () => {
+    const p = N.createPeer('a', 'ana', 100);
+    p.update(90, 1);
+    p.update(95, 2);          // 5 c/s, so 3 more seconds would reach 110
+    eq(p.positionAt(4), 100);
+    eq(p.positionAt(60), 100);
+  });
+
+  check('lane: a peer that goes quiet coasts, then stops', () => {
+    const p = N.createPeer('a', 'ana', 10000);
+    p.update(100, 1);
+    p.update(200, 2);         // 100 c/s
+    /* One second of silence is a hiccup and is ridden out. */
+    eq(p.positionAt(3), 300);
+    /* Beyond the coasting window it stands still, so a dropped
+       connection cannot glide across the line. */
+    eq(p.positionAt(4), 200 + 100 * N.MAX_COAST);
+    eq(p.positionAt(90), 200 + 100 * N.MAX_COAST);
+  });
+
+  check('lane: a packet that overtook a newer one is ignored', () => {
+    const p = N.createPeer('a', 'ana', 500);
+    p.update(50, 3);
+    p.update(20, 1);          // arrived late, carries nothing we want
+    eq(p.positionAt(3), 50);
+  });
+
+  check('lane: a lane never runs backwards', () => {
+    const p = N.createPeer('a', 'ana', 500);
+    p.update(50, 1);
+    p.update(30, 2);          // a client that lied, or a bad read
+    eq(p.positionAt(2), 50);
+    eq(p.rate(), 0);
+  });
+
+  check('lane: junk in an update cannot move the lane off its position', () => {
+    const p = N.createPeer('a', 'ana', 500);
+    p.update(40, 1);
+    p.update('nonsense', 2);
+    p.update(NaN, 3);
+    eq(p.positionAt(3), 40);
+    assert(isFinite(p.positionAt(3)), 'position went non-finite');
+  });
+
+  check('lane: position is a function of time, so dropped frames cost nothing', () => {
+    const stepped = N.createPeer('a', 'ana', 5000);
+    const skipped = N.createPeer('b', 'ben', 5000);
+    [stepped, skipped].forEach((p) => { p.update(100, 1); p.update(160, 2); });
+
+    /* One lane is read every frame, the other only once at the end. */
+    for (let t = 2; t < 3.5; t += 1 / 60) stepped.positionAt(t);
+    eq(stepped.positionAt(3.5), skipped.positionAt(3.5));
+  });
+
+  check('lane: a finish line of zero cannot produce a position', () => {
+    const p = N.createPeer('a', 'ana', 0);
+    p.update(50, 1);
+    p.update(80, 2);
+    eq(p.positionAt(5), 0);
+  });
+
+  /* ------------------------- leader and placing ------------------------- */
+
+  check('leader: whoever is furthest along is the one you are racing', () => {
+    const a = N.createPeer('a', 'ana', 500);
+    const b = N.createPeer('b', 'ben', 500);
+    a.update(100, 1);
+    b.update(140, 1);
+    eq(N.leaderAt([a, b], 1).peer.nick, 'ben');
+    a.update(300, 2);
+    b.update(180, 2);
+    eq(N.leaderAt([a, b], 2).peer.nick, 'ana');
+  });
+
+  check('leader: somebody who left the room is not in the race', () => {
+    const a = N.createPeer('a', 'ana', 500);
+    const b = N.createPeer('b', 'ben', 500);
+    a.update(100, 1);
+    b.update(400, 1);
+    b.gone = true;
+    eq(N.leaderAt([a, b], 1).peer.nick, 'ana');
+    eq(N.leaderAt([a, b], 1).pos, 100);
+  });
+
+  check('leader: an empty room has no leader and no position', () => {
+    eq(N.leaderAt([], 5).peer, null);
+    eq(N.leaderAt([], 5).pos, 0);
+    eq(N.leaderAt(null, 5).peer, null);
+  });
+
+  check('place: first across the line is first', () => {
+    const a = N.createPeer('a', 'ana', 500);
+    const b = N.createPeer('b', 'ben', 500);
+    eq(N.placeOf(12.5, [a, b]), 1);
+  });
+
+  check('place: only those who crossed before you are ahead of you', () => {
+    const a = N.createPeer('a', 'ana', 500);
+    const b = N.createPeer('b', 'ben', 500);
+    const c = N.createPeer('c', 'cal', 500);
+    a.finishedAt = 10;
+    b.finishedAt = 14;        // after you
+    eq(N.placeOf(12, [a, b, c]), 2);
+  });
+
+  check('place: nobody still typing can be ahead of you', () => {
+    const a = N.createPeer('a', 'ana', 500);
+    const b = N.createPeer('b', 'ben', 500);
+    eq(N.placeOf(9, [a, b]), 1);
+    eq(N.placeOf(9, []), 1);
+  });
+
+  /* ------------------------------ identity ------------------------------ */
+
+  check('nick: control characters are stripped', () => {
+    eq(N.cleanNick('an' + String.fromCharCode(0) + 'a' + String.fromCharCode(27)), 'ana');
+    eq(N.cleanNick('a' + String.fromCharCode(127) + 'b'), 'ab');
+  });
+
+  check('nick: a name that is not ASCII is still a name', () => {
+    const jp = String.fromCharCode(0x3055, 0x304f, 0x3089);
+    eq(N.cleanNick(jp), jp);
+    eq(N.cleanNick('Zo' + String.fromCharCode(0xe9)), 'Zo' + String.fromCharCode(0xe9));
+  });
+
+  check('nick: whitespace is collapsed and trimmed, never left ragged', () => {
+    eq(N.cleanNick('  two   words  '), 'two words');
+    eq(N.cleanNick('a\tb\nc'), 'a b c');
+  });
+
+  check('nick: an empty or blank name becomes guest', () => {
+    eq(N.cleanNick(''), 'guest');
+    eq(N.cleanNick('   '), 'guest');
+    eq(N.cleanNick(null), 'guest');
+    eq(N.cleanNick(String.fromCharCode(1, 2, 3)), 'guest');
+  });
+
+  check('nick: a long name is cut to the limit', () => {
+    const out = N.cleanNick(new Array(60).join('x'));
+    eq(out.length, N.NICK_MAX);
+  });
+
+  check('nick: the cut counts characters, not halves of them', () => {
+    /* Twenty emoji: forty UTF-16 units, so a naive slice would leave a
+       lone surrogate at the end and render as a replacement box. */
+    let name = '';
+    for (let i = 0; i < 20; i++) name += String.fromCodePoint(0x1f600);
+
+    const out = N.cleanNick(name);
+    eq(Array.from(out).length, N.NICK_MAX);
+
+    const tail = out.charCodeAt(out.length - 1);
+    assert(tail < 0xd800 || tail > 0xdbff, 'the cut split a surrogate pair');
+  });
+
+  /* ------------------------------ room ids ------------------------------ */
+
+  check('room id: the same bytes always give the same id', () => {
+    const bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+    eq(N.makeRoomId(bytes), N.makeRoomId(bytes));
+    eq(N.makeRoomId(bytes).length, N.ID_LENGTH);
+  });
+
+  check('room id: only unambiguous lowercase characters are used', () => {
+    for (let n = 0; n < 40; n++) {
+      const bytes = [n, n + 7, n + 13, n + 29, n + 51, n + 83, n + 109, n + 199];
+      const id = N.makeRoomId(bytes);
+      assert(/^[a-z0-9]{8}$/.test(id), 'bad id: ' + id);
+      assert(!/[ilo01]/.test(id), 'look-alike character in: ' + id);
+    }
+  });
+
+  check('room id: a good id is read back off the url', () => {
+    eq(N.roomIdFromHash('#r=abcd2345'), 'abcd2345');
+    eq(N.roomIdFromHash('#theme=lamp&r=xyz789'), 'xyz789');
+    eq(N.roomIdFromHash('#r=ABCD2345'), 'abcd2345');
+  });
+
+  check('room id: anything that is not an id is refused', () => {
+    eq(N.roomIdFromHash(''), '');
+    eq(N.roomIdFromHash('#r='), '');
+    eq(N.roomIdFromHash('#nothing'), '');
+    eq(N.roomIdFromHash('#r=ab'), '');                       // too short
+    eq(N.roomIdFromHash('#r=' + new Array(40).join('a')), '');  // too long
+    eq(N.roomIdFromHash('#r=../../etc'), '');
+    eq(N.roomIdFromHash('#r=a b c d'), '');
+    eq(N.roomIdFromHash('#r=%2e%2e%2fadmin'), '');
+  });
 
   /* --------------------------- results reveal --------------------------- */
 

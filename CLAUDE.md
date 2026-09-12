@@ -33,8 +33,8 @@ or renaming a module means editing both, or the tests silently stop covering it.
 
 Exports: `TT.words`, `TT.stats`, `TT.config` / `TT.storage`, `TT.chart` /
 `TT.chartMath`, `TT.reveal`, `TT.createLamp` / `TT.lampMath`, `TT.createPetals` /
-`TT.petalMath`, `TT.race`, `TT.createEngine`, `TT.createRenderer`, `TT.createUI` /
-`TT.createGuard` / `TT.format`.
+`TT.petalMath`, `TT.race`, `TT.netMath` / `TT.createRoom`, `TT.createEngine`,
+`TT.createRenderer`, `TT.createUI` / `TT.createGuard` / `TT.format`.
 
 The flow is: `main.js` boots, grabs the DOM, and wires an engine to a renderer and
 a ui. `engine.js` is a state machine that emits `rebuild | append | start | key |

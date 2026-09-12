@@ -165,6 +165,7 @@ js/reveal.js    the results-screen number shuffle
 js/lamp.js      the lava lamp canvas (lamp theme only)
 js/petals.js    the falling-petal canvas (sakura only)
 js/race.js      the AI opponent: speed model and position
+js/net.js       the shared race: seeded passages, clock offset, remote lanes
 js/engine.js    typing state machine (no DOM)
 js/render.js    word painting, caret, line scroll
 js/ui.js        mode bar, results screen, history modal
@@ -181,8 +182,8 @@ LICENSE                 MIT, plus third-party provenance
 favicon.ico/.svg, apple-touch-icon.png, icon-*.png, og-image.png
 ```
 
-`js/engine.js` and `js/stats.js` never touch the DOM, which is what lets
-`tests.html` drive them directly.
+`js/engine.js`, `js/net.js` and `js/stats.js` never touch the DOM, which is
+what lets `tests.html` drive them directly.
 
 ## Racing
 
