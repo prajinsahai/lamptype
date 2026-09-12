@@ -18,6 +18,11 @@ window.TT = window.TT || {};
      carrying on typing cannot skip past it before it has been read. */
   const RESULTS_GUARD_MS = 2000;
 
+  /* How long "clear history" stays armed before it forgets it was asked.
+     Long enough to move the mouse back, short enough that an armed
+     button is never still waiting when you return to the panel. */
+  const CLEAR_CONFIRM_MS = 4000;
+
   function boot() {
     const $ = (id) => document.getElementById(id);
 
@@ -450,14 +455,10 @@ window.TT = window.TT || {};
     /* Focus recovery: if the caret is not armed, the next printable key
        should both restore focus and land in the test. */
     document.addEventListener('keydown', (event) => {
-      if (ui.isHistoryOpen()) {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          ui.closeHistory();
-          focusInput();
-        }
-        return;
-      }
+      /* The dialog closes itself on Escape and keeps Tab inside the
+         card, so there is nothing to route here. Everything else has to
+         stop: keys must not leak into the test behind the panel. */
+      if (ui.isHistoryOpen()) return;
 
       if (!dom.viewResults.hidden) {
         if (event.key === 'Tab' && event.shiftKey) return;   // let focus leave
@@ -499,9 +500,36 @@ window.TT = window.TT || {};
 
     dom.btnHistory.addEventListener('click', () => ui.openHistory());
 
+    /* Clearing the history cannot be undone and there is nowhere to undo
+       it from, so the button asks first. The label carries the question:
+       a second dialog on top of this one would be worse than the risk. */
+    let clearTimer = 0;
+
+    function disarmClear() {
+      if (clearTimer) clearTimeout(clearTimer);
+      clearTimer = 0;
+      dom.btnClearHistory.textContent = 'clear history';
+      dom.btnClearHistory.classList.remove('armed');
+    }
+
     dom.btnClearHistory.addEventListener('click', () => {
+      if (!clearTimer) {
+        dom.btnClearHistory.textContent = 'click again to clear';
+        dom.btnClearHistory.classList.add('armed');
+        clearTimer = setTimeout(disarmClear, CLEAR_CONFIRM_MS);
+        return;
+      }
+      disarmClear();
       TT.storage.clearHistory();
       ui.renderHistory();
+    });
+
+    /* Every way out of the panel lands here - the close button, a click
+       on the backdrop, Escape - so the disarm and the return to typing
+       only have to be written once. */
+    dom.historyModal.addEventListener('close', () => {
+      disarmClear();
+      focusInput();
     });
 
     dom.themeSelect.addEventListener('change', () => setTheme(dom.themeSelect.value));
@@ -518,6 +546,10 @@ window.TT = window.TT || {};
     ui.applyColorMode(settings.colorMode);
     syncBackdrop();
     ui.renderModeBar();
+    /* Fills the history panel up front. openHistory() would do it anyway,
+       but until it runs the table is a header row with no data cells
+       under it, which is a broken table rather than an empty one. */
+    ui.renderHistory();
     renderer.setFocused(false);
     restart();
 

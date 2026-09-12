@@ -75,15 +75,64 @@ window.TT = window.TT || {};
       const values = TT.storage.valuesFor(s.mode);
       const current = s[TT.storage.settingFor(s.mode)];
 
-      dom.modeValues.textContent = '';
-      values.forEach((v) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'mode-btn' + (v === current ? ' active' : '');
+      /* Reused rather than rebuilt. A button born with .active already on
+         it has no state to animate from, so wiping the row meant the rule
+         never moved and every length change read as a cut. Recreating the
+         row also drops keyboard focus to <body> if one of them had it. */
+      const btns = Array.from(dom.modeValues.querySelectorAll('.mode-btn'));
+      while (btns.length > values.length) dom.modeValues.removeChild(btns.pop());
+
+      values.forEach((v, i) => {
+        let btn = btns[i];
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'mode-btn';
+          dom.modeValues.appendChild(btn);
+        }
+        const on = v === current;
         btn.dataset.value = String(v);
         btn.textContent = String(v);
-        btn.setAttribute('aria-pressed', String(v === current));
-        dom.modeValues.appendChild(btn);
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+
+      positionSliders();
+    }
+
+    /* One rule per single-select group, slid to the active choice. The
+       per-button rules in style.css stay for the include toggles, where
+       two can be lit at once and there is nothing to slide between. */
+    function positionSliders() {
+      dom.modeBar.querySelectorAll('[data-slider]').forEach((group) => {
+        /* No layout while the results screen is up: offsetLeft reads 0
+           and would collapse the rule onto the left edge. Leave it where
+           it is - showTest puts it back once the bar is on screen. */
+        if (!group.offsetParent) return;
+
+        let bar = group.querySelector('.mode-underline');
+        const fresh = !bar;
+        if (fresh) {
+          bar = document.createElement('span');
+          bar.className = 'mode-underline';
+          bar.style.transition = 'none';
+          /* First child, so appending a button never lands after it. */
+          group.insertBefore(bar, group.firstChild);
+        }
+
+        const active = group.querySelector('.mode-btn.active');
+        bar.style.opacity = active ? '1' : '0';
+        if (active) {
+          bar.style.transform = 'translateX(' + active.offsetLeft + 'px) ' +
+                                'scaleX(' + active.offsetWidth + ')';
+        }
+
+        if (fresh) {
+          /* Flush the first position before the transition exists, or the
+             rule slides in from the left edge on load. */
+          void bar.offsetWidth;
+          bar.style.transition = '';
+        }
       });
     }
 
@@ -157,6 +206,9 @@ window.TT = window.TT || {};
       /* The chart samples CSS variables at draw time, so it has to be
          repainted whenever the palette changes. */
       if (lastResult && !dom.viewResults.hidden) redrawChart();
+      /* Sakura sets the labels in a different face and tracking, so the
+         buttons move and the rule has to follow them. */
+      positionSliders();
       return theme;
     }
 
@@ -277,50 +329,75 @@ window.TT = window.TT || {};
 
     /* ----------------------------- results ----------------------------- */
 
+    /* Crossfades the two views and carries the height change with them.
+       Only the entering view was ever animated: the outgoing one went to
+       display:none on the spot, which no CSS transition can reach across,
+       so the page collapsed and the new panel lifted into a gap.
+
+       The callback runs asynchronously, after the outgoing view has been
+       captured - so every mutation has to be inside it, including the
+       chart's requestAnimationFrame, which otherwise measures a canvas
+       that is still hidden and gets a width of zero. */
+    function swapViews(mutate) {
+      if (TT.reveal.reducedMotion() || !document.startViewTransition) {
+        mutate();
+        return;
+      }
+      document.startViewTransition(mutate);
+    }
+
     function showResults(result, isPersonalBest, recorded, raceOutcome) {
       lastResult = result;
       const c = result.chars;
 
+      /* Synchronous: a pending reveal must not fire into the swap. */
       cancelReveals();
 
-      /* The numbers shuffle through random digits and settle into the
-         real value; the mode label is words, so it just appears. */
-      revealStat(dom.resWpm, asWpm(result.wpm), 0);
-      revealStat(dom.resAcc, asPct(result.accuracy), 1);
-      revealStat(dom.resRaw, asWpm(result.raw), 0);
-      revealStat(dom.resChars, [c.correct, c.incorrect, c.extra, c.missed].join('/'), 1);
-      revealStat(dom.resCons, asPct(result.consistency), 2);
-      revealStat(dom.resTime, formatDuration(result.duration), 3);
-      dom.resType.textContent = TT.storage.modeLabel(result);
-      dom.resPb.hidden = !isPersonalBest;
-      dom.resNote.hidden = recorded !== false;
+      swapViews(() => {
+        /* The numbers shuffle through random digits and settle into the
+           real value; the mode label is words, so it just appears. */
+        revealStat(dom.resWpm, asWpm(result.wpm), 0);
+        revealStat(dom.resAcc, asPct(result.accuracy), 1);
+        revealStat(dom.resRaw, asWpm(result.raw), 0);
+        revealStat(dom.resChars, [c.correct, c.incorrect, c.extra, c.missed].join('/'), 1);
+        revealStat(dom.resCons, asPct(result.consistency), 2);
+        revealStat(dom.resTime, formatDuration(result.duration), 3);
+        dom.resType.textContent = TT.storage.modeLabel(result);
+        dom.resPb.hidden = !isPersonalBest;
+        dom.resNote.hidden = recorded !== false;
 
-      if (raceOutcome) {
-        dom.raceResult.hidden = false;
-        dom.raceResult.classList.toggle('lost', !raceOutcome.won);
-        dom.raceOutcome.textContent = raceOutcome.won ? 'you won' : 'the ai won';
-        dom.raceDetail.textContent =
-          'opponent ' + asWpm(raceOutcome.opponentWpm) + ' wpm';
-      } else {
-        dom.raceResult.hidden = true;
-      }
+        if (raceOutcome) {
+          dom.raceResult.hidden = false;
+          dom.raceResult.classList.toggle('lost', !raceOutcome.won);
+          dom.raceOutcome.textContent = raceOutcome.won ? 'you won' : 'the ai won';
+          dom.raceDetail.textContent =
+            'opponent ' + asWpm(raceOutcome.opponentWpm) + ' wpm';
+        } else {
+          dom.raceResult.hidden = true;
+        }
 
-      dom.viewTest.hidden = true;
-      dom.viewResults.hidden = false;
-      announceResult(result, isPersonalBest, recorded, raceOutcome);
+        dom.viewTest.hidden = true;
+        dom.viewResults.hidden = false;
+        announceResult(result, isPersonalBest, recorded, raceOutcome);
 
-      /* Wait for layout: the canvas has no width until it is visible. */
-      chartRaf = requestAnimationFrame(() => {
-        chartRaf = 0;
-        stopChart = TT.chart.animate(dom.chart, result.samples);
+        /* Wait for layout: the canvas has no width until it is visible. */
+        chartRaf = requestAnimationFrame(() => {
+          chartRaf = 0;
+          stopChart = TT.chart.animate(dom.chart, result.samples);
+        });
       });
     }
 
     function showTest() {
       cancelReveals();
-      if (dom.announcer) dom.announcer.textContent = '';
-      dom.viewResults.hidden = true;
-      dom.viewTest.hidden = false;
+      swapViews(() => {
+        if (dom.announcer) dom.announcer.textContent = '';
+        dom.viewResults.hidden = true;
+        dom.viewTest.hidden = false;
+        /* The bar had no layout while the results were up, so the rule
+           was left behind wherever it last sat. */
+        positionSliders();
+      });
     }
 
     /* ----------------------------- history ----------------------------- */
@@ -380,40 +457,62 @@ window.TT = window.TT || {};
         bests.forEach((entry) => dom.pbGrid.appendChild(pbCard(entry)));
       }
 
+      /* With nothing to show, the table goes away rather than standing
+         there as five column headings over an apology. A header row with
+         no data under it is also a broken table to a screen reader, not
+         an empty one. */
+      const wrap = dom.historyBody.closest('.table-wrap');
       dom.historyBody.textContent = '';
       if (history.length === 0) {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5;
-        td.textContent = 'nothing here yet - finish a test to fill this in';
-        tr.appendChild(td);
-        dom.historyBody.appendChild(tr);
+        if (wrap) {
+          wrap.hidden = true;
+          if (!wrap.nextElementSibling ||
+              !wrap.nextElementSibling.classList.contains('empty-note')) {
+            wrap.insertAdjacentElement('afterend',
+              note('nothing here yet - finish a test to fill this in'));
+          }
+        }
       } else {
+        if (wrap) {
+          wrap.hidden = false;
+          const stale = wrap.nextElementSibling;
+          if (stale && stale.classList.contains('empty-note')) stale.remove();
+        }
         history.slice(0, HISTORY_ROWS).forEach((entry) => {
           dom.historyBody.appendChild(historyRow(entry));
         });
       }
     }
 
+    /* showModal() is what makes this a modal rather than a div that looks
+       like one: it moves focus in, holds Tab inside the card, renders the
+       page behind it inert, closes on Escape and hands focus back. */
     function openHistory() {
+      if (dom.historyModal.open) return;
       renderHistory();
-      dom.historyModal.hidden = false;
+      dom.historyModal.showModal();
     }
 
     function closeHistory() {
-      dom.historyModal.hidden = true;
+      if (dom.historyModal.open) dom.historyModal.close();
     }
 
     function isHistoryOpen() {
-      return !dom.historyModal.hidden;
+      return dom.historyModal.open === true;
     }
 
     dom.historyModal.addEventListener('click', (event) => {
-      if (event.target.closest('[data-close]')) closeHistory();
+      /* The dialog fills the viewport, so a click that lands on the
+         element itself rather than on the card is a backdrop click.
+         ::backdrop is painted, not hit-tested, so there is no node. */
+      if (event.target === dom.historyModal) closeHistory();
+      else if (event.target.closest('[data-close]')) closeHistory();
     });
 
     window.addEventListener('resize', () => {
       if (!dom.viewResults.hidden) redrawChart();
+      /* A reflow moves the buttons out from under the rule. */
+      positionSliders();
     });
 
     return {

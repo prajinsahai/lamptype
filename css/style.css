@@ -117,7 +117,7 @@ button, select, input { font: inherit; color: inherit; }
   font-size: .6875rem;
   text-transform: uppercase;
   letter-spacing: .14em;
-  color: var(--sub);
+  color: var(--label);
   font-weight: 500;
 }
 
@@ -201,7 +201,7 @@ button, select, input { font: inherit; color: inherit; }
   text-transform: uppercase;
   letter-spacing: .14em;
   font-weight: 500;
-  color: var(--sub);
+  color: var(--label);
   transition: color .18s ease, opacity .3s ease;
 }
 
@@ -209,10 +209,18 @@ button, select, input { font: inherit; color: inherit; }
    read the same there as it does on the test. */
 a.text-btn { text-decoration: none; }
 
+/* WCAG 2.2 asks for 24x24 on every target, and nothing on this page has
+   a box to grow. So the hit area is padded out instead: the type stays
+   exactly where it sits and only the target gets bigger. On the prose
+   pages, where .text-btn lands on an inline <a>, vertical padding grows
+   the hit area without touching the line box at all. */
+button.text-btn { padding-block: .3rem; }
+
 .text-btn:hover,
 .mode-btn:hover { color: var(--text); }
 
-.text-btn.danger:hover { color: var(--error); }
+.text-btn.danger:hover,
+.text-btn.danger.armed { color: var(--error); }
 
 .theme-select {
   background: none;
@@ -224,7 +232,8 @@ a.text-btn { text-decoration: none; }
   text-transform: uppercase;
   letter-spacing: .14em;
   font-weight: 500;
-  color: var(--sub);
+  color: var(--label);
+  min-height: 1.5rem;
   transition: color .18s ease, border-color .18s ease;
 }
 .theme-select:hover { color: var(--text); border-bottom-color: var(--rule); }
@@ -260,6 +269,8 @@ a.text-btn { text-decoration: none; }
 }
 
 .mode-group {
+  /* The sliding rule below is positioned against this. */
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: .9rem;
@@ -269,8 +280,16 @@ a.text-btn { text-decoration: none; }
    left, rather than by a pill or a fill. */
 .mode-btn {
   position: relative;
+  /* Top padding only: the rule below is pinned to the bottom edge, so
+     growing the target upward leaves it exactly where it was. */
+  padding-top: .3rem;
   padding-bottom: .3rem;
-  color: var(--sub);
+  /* "15" is 14px of type, which is a poor thing to aim at on a phone.
+     The rule under the short lengths is now wider than the digits -
+     the same width under every one of them, which reads as deliberate
+     rather than as four rules of four different lengths. */
+  min-width: 1.5rem;
+  color: var(--label);
 }
 
 .mode-btn::after {
@@ -288,6 +307,26 @@ a.text-btn { text-decoration: none; }
 
 .mode-btn.active { color: var(--main); }
 .mode-btn.active::after { transform: scaleX(1); }
+
+/* Single-select groups carry one rule that slides between the choices
+   instead, so the per-button rule would only double it up. A line
+   travelling from one word to the next reads as one choice moving;
+   two independent lines crossfading reads as a cut. */
+[data-slider] .mode-btn::after { display: none; }
+
+.mode-underline {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  background: var(--main);
+  transform-origin: left;
+  /* scaleX carries the width, so position and size are the one
+     compositor property and interpolate together. */
+  transition: transform .28s var(--ease), opacity .2s ease;
+  pointer-events: none;
+}
 
 .mode-sep { display: none; }
 
@@ -405,7 +444,7 @@ a.text-btn { text-decoration: none; }
   font-size: .6875rem;
   text-transform: uppercase;
   letter-spacing: .14em;
-  color: var(--sub);
+  color: var(--label);
   opacity: 0;
   pointer-events: none;
   transition: opacity .25s ease;
@@ -467,13 +506,22 @@ body.typing-cursor-hidden * { cursor: none !important; }
 }
 
 .icon-btn {
+  /* Centred in a 24px box rather than sized by the glyph, which left
+     the restart control a 14x18px target. The glyph does not move: it
+     was already centred on its own box, and rotates about the same
+     point. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
   background: none;
   border: 0;
   padding: 0;
   cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
-  color: var(--sub);
+  color: var(--label);
   transition: color .18s ease, transform .3s var(--ease);
 }
 .icon-btn:hover { color: var(--main); transform: rotate(-90deg); }
@@ -484,7 +532,6 @@ body.typing-cursor-hidden * { cursor: none !important; }
 
 .hint {
   margin: var(--space-3) 0 0;
-  opacity: .75;
 }
 
 kbd {
@@ -495,7 +542,7 @@ kbd {
   padding: .1rem .3rem;
   border: var(--rule-w) solid var(--rule);
   border-radius: 2px;
-  color: var(--sub);
+  color: var(--label);
 }
 
 /* ================================= race =================================
@@ -548,7 +595,7 @@ kbd {
   text-align: right;
   font-family: var(--font-serif);
   font-size: .875rem;
-  color: var(--sub);
+  color: var(--label);
   font-variant-numeric: tabular-nums;
 }
 
@@ -617,7 +664,7 @@ kbd {
   font-size: 1.125rem;
   color: var(--main);
 }
-.race-result.lost .race-outcome { color: var(--sub); }
+.race-result.lost .race-outcome { color: var(--label); }
 
 .race-detail,
 .result-note {
@@ -625,7 +672,7 @@ kbd {
   font-size: .6875rem;
   text-transform: uppercase;
   letter-spacing: .14em;
-  color: var(--sub);
+  color: var(--label);
 }
 
 .pb-badge {
@@ -687,8 +734,7 @@ kbd {
   font-size: .625rem;
   text-transform: uppercase;
   letter-spacing: .16em;
-  color: var(--sub);
-  opacity: .7;
+  color: var(--label);
 }
 
 .ad-inner {
@@ -700,8 +746,6 @@ kbd {
   justify-content: center;
   border: var(--rule-w) dashed var(--rule);
 }
-
-.ad-note { opacity: .6; }
 
 .bottom {
   display: flex;
@@ -751,23 +795,42 @@ kbd {
   text-transform: uppercase;
   letter-spacing: .14em;
   text-decoration: none;
+  /* Flex blockifies these, so the padding grows the target. The link
+     inside .bottom-claim is left alone: it sits in a sentence, which is
+     the inline exception to the target-size rule. */
+  padding-block: .3rem;
 }
 
 /* ================================= modal ================================= */
 
+/* <dialog> arrives with a box of its own - a border, a background, a
+   centred margin and a max size - so all of that is cleared and the
+   element is used as the full-viewport overlay it looks like. */
 .modal {
   position: fixed;
   inset: 0;
   z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
   padding: var(--gutter);
 }
 
-.modal-backdrop {
-  position: absolute;
-  inset: 0;
+/* Only when open: the [open] guard is what keeps the browser's own
+   "closed dialogs are display:none" rule in force, which an author
+   display value would otherwise beat outright. */
+.modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal::backdrop {
   background: var(--bg);
   opacity: .92;
 }
@@ -777,6 +840,9 @@ kbd {
   width: min(46rem, 100%);
   max-height: 82vh;
   overflow-y: auto;
+  /* This scrolls, so without containment reaching its end hands the
+     wheel to the page underneath and the test scrolls away behind. */
+  overscroll-behavior: contain;
   background: var(--bg);
   border: var(--rule-w) solid var(--rule);
   padding: 2rem;
@@ -821,7 +887,7 @@ kbd {
   font-size: .6875rem;
   text-transform: uppercase;
   letter-spacing: .14em;
-  color: var(--sub);
+  color: var(--label);
 }
 
 .pb-wpm {
@@ -847,7 +913,7 @@ kbd {
   text-transform: uppercase;
   letter-spacing: .14em;
   font-weight: 500;
-  color: var(--sub);
+  color: var(--label);
   padding: 0 1rem .6rem 0;
   border-bottom: var(--rule-w) solid var(--rule);
 }
@@ -862,7 +928,7 @@ kbd {
 .history-table tbody tr:last-child td { border-bottom: 0; }
 .history-table td:first-child { color: var(--main); }
 
-.empty-row { color: var(--sub); }
+.empty-row { color: var(--label); }
 
 .modal-foot {
   display: flex;
@@ -887,6 +953,28 @@ kbd {
 
   /* A leaderboard does not fit: fall back to the mobile banner size. */
   .ad-inner { width: 320px; height: 50px; }
+}
+
+/* ============================ view transitions ============================ */
+
+/* Only one of the two views is in the DOM at a time, so sharing a name
+   makes the swap one element changing size rather than two fading past
+   each other. That is what carries the page-height change, which no CSS
+   transition can reach across a display:none swap. */
+#view-test,
+#view-results { view-transition-name: view; }
+
+::view-transition-old(view),
+::view-transition-new(view) {
+  animation-duration: .32s;
+  animation-timing-function: var(--ease);
+}
+
+/* view-in is the fallback for browsers without view transitions. Where
+   they exist it would play underneath the crossfade and double up. */
+@supports (view-transition-name: none) {
+  .results:not([hidden]),
+  #view-test:not([hidden]) { animation: none; }
 }
 
 /* ============================= reduced motion ============================= */

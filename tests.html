@@ -946,6 +946,86 @@
   });
 
 
+  /* ------------------------------ mode bar ------------------------------ */
+
+  /* createUI only touches these few nodes on the way up and while
+     rendering the length row, so the fixture can stay this small. */
+  function modeBarFixture(settings) {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:-9999px;top:0';
+    host.innerHTML =
+      '<div id="bar"><div class="mode-group" data-slider>' +
+      '<button type="button" class="mode-btn" data-mode="time">time</button>' +
+      '<button type="button" class="mode-btn" data-mode="words">words</button>' +
+      '</div><div class="mode-group" id="values" data-slider></div></div>' +
+      '<div id="modal" hidden></div><div id="res" hidden></div>';
+    document.body.appendChild(host);
+
+    let current = settings;
+    /* main.js re-renders the bar from its own setSettings; the fixture
+       has to do the same or a click changes nothing on screen. */
+    const ui = TT.createUI(
+      {
+        modeBar: host.querySelector('#bar'),
+        modeValues: host.querySelector('#values'),
+        historyModal: host.querySelector('#modal'),
+        viewResults: host.querySelector('#res')
+      },
+      null,
+      {
+        getSettings: () => current,
+        setSettings: (patch) => {
+          current = Object.assign({}, current, patch);
+          ui.renderModeBar();
+        }
+      }
+    );
+
+    return { ui, host, values: host.querySelector('#values') };
+  }
+
+  check('mode bar: re-rendering reuses the buttons rather than replacing them', () => {
+    const f = modeBarFixture({ mode: 'time', timeValue: 30 });
+    try {
+      f.ui.renderModeBar();
+      const before = Array.from(f.values.querySelectorAll('.mode-btn'));
+      assert(before.length === TT.config.TIME_VALUES.length, 'one button per length');
+
+      f.ui.renderModeBar();
+      const after = Array.from(f.values.querySelectorAll('.mode-btn'));
+
+      /* If these are new nodes the active rule is born at its final
+         state and the change reads as a cut instead of a slide. */
+      before.forEach((btn, i) => {
+        assert(after[i] === btn, 'button ' + i + ' is the same element');
+      });
+      return before.length + ' buttons kept';
+    } finally {
+      f.host.remove();
+    }
+  });
+
+  check('mode bar: the active mark moves without dropping keyboard focus', () => {
+    const f = modeBarFixture({ mode: 'time', timeValue: 30 });
+    try {
+      f.ui.renderModeBar();
+      const btn60 = f.values.querySelector('[data-value="60"]');
+      const btn30 = f.values.querySelector('[data-value="30"]');
+      assert(btn30.classList.contains('active'), '30 starts active');
+
+      btn60.focus();
+      assert(document.activeElement === btn60, 'the fixture is focusable');
+
+      btn60.click();
+      assert(btn60.classList.contains('active'), '60 is active after the click');
+      assert(!btn30.classList.contains('active'), '30 is no longer active');
+      assert(document.activeElement === btn60, 'focus stayed on the button');
+    } finally {
+      f.host.remove();
+    }
+  });
+
+
   /* ---------------------------- race opponent ---------------------------- */
 
   const R = TT.race;

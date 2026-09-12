@@ -8,7 +8,11 @@
    --bg          page ground
    --sub-alt     raised surface (history cards, chart grid, ad box)
    --rule        hairline rules, the backbone of the layout
-   --sub         untyped text and quiet labels
+   --sub         untyped text - dim on purpose, this is a typing test
+   --label       UI chrome: the small tracked labels, the hints, the
+                 buttons. Split out from --sub so that clearing WCAG AA
+                 on the furniture does not mean brightening the words
+                 you have not typed yet, which is the whole look.
    --text        typed-and-correct letters, primary text
    --main        accent: active setting, wpm, caret, chart line
    --caret       caret colour (usually the accent)
@@ -18,6 +22,11 @@
    Each theme owns one hue and spends it sparingly. Typed text against
    the ground clears WCAG AA at every size in all of them.
 
+   Every theme also declares `color-scheme`. Without it the browser
+   paints its own widgets - scrollbars, the theme <select>'s dropdown,
+   form controls - light, which on the five dark themes is a white
+   scrollbar down the side of a near-black page.
+
    `lamp` additionally defines --lamp-* for the backdrop canvas.
    --------------------------------------------------------------- */
 
@@ -26,12 +35,14 @@
        variables drive the canvas in js/lamp.js. ------------------- */
 :root,
 [data-theme="lamp"] {
+  color-scheme: dark;
   --bg:          #0e0f13;
   --sub-alt:     #171922;
   --rule:        #242835;
   /* Brighter than the other themes' untyped grey: the backdrop lightens
      the ground under it, and the words still have to be readable there. */
   --sub:         #6b7186;
+  --label:       #757b91;
   --text:        #ecebf1;
   --main:        #f0894a;
   --caret:       #f0894a;
@@ -47,10 +58,12 @@
 
 /* --- paper: warm off-white stock, ink, one deep green ------------- */
 [data-theme="paper"] {
+  color-scheme: light;
   --bg:          #f6f3ed;
   --sub-alt:     #eae5da;
   --rule:        #dcd5c7;
   --sub:         #a79e8d;
+  --label:       #786e5c;
   --text:        #1e1b17;
   --main:        #1f5d4c;
   --caret:       #1f5d4c;
@@ -60,10 +73,12 @@
 
 /* --- ink: cold near-black, bone text, steel blue ------------------ */
 [data-theme="ink"] {
+  color-scheme: dark;
   --bg:          #131417;
   --sub-alt:     #1a1c20;
   --rule:        #262930;
   --sub:         #565b66;
+  --label:       #777e8c;
   --text:        #e9e7e1;
   --main:        #7fa6cc;
   --caret:       #7fa6cc;
@@ -73,10 +88,12 @@
 
 /* --- linen: cool light grey, plum accent -------------------------- */
 [data-theme="linen"] {
+  color-scheme: light;
   --bg:          #efede7;
   --sub-alt:     #e2dfd6;
   --rule:        #d5d1c6;
   --sub:         #9e9a8f;
+  --label:       #6f6b60;
   --text:        #232120;
   --main:        #6b3560;
   --caret:       #6b3560;
@@ -86,10 +103,12 @@
 
 /* --- oxide: dark warm brown, rust accent -------------------------- */
 [data-theme="oxide"] {
+  color-scheme: dark;
   --bg:          #17130f;
   --sub-alt:     #1f1a15;
   --rule:        #2c2419;
   --sub:         #665949;
+  --label:       #8d7b65;
   --text:        #ede4d8;
   --main:        #c4703c;
   --caret:       #c4703c;
@@ -101,10 +120,12 @@
 
 /* --- iris: dark cool slate, muted violet -------------------------- */
 [data-theme="iris"] {
+  color-scheme: dark;
   --bg:          #14151b;
   --sub-alt:     #1b1d25;
   --rule:        #272a36;
   --sub:         #575c6c;
+  --label:       #787e92;
   --text:        #e5e6ed;
   --main:        #9b8ce0;
   --caret:       #9b8ce0;

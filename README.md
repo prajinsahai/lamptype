@@ -34,7 +34,36 @@ python -m http.server 8000 --directory .
 - **Ad slot** - a reserved 728x90 leaderboard below the test (320x50 on narrow
   screens). See below.
 - **History** - every completed test is kept in `localStorage`, with personal
-  bests derived per mode. Nothing leaves the browser.
+  bests derived per mode. Nothing leaves the browser. The panel is a native
+  `<dialog>`, so focus moves into it, stays inside it, and comes back out where
+  it started without any of that being written by hand. **Clear history** asks
+  once - the button becomes "click again to clear" for four seconds - because
+  the wipe is irreversible and there is nowhere to undo it from.
+
+### Colour and contrast
+
+Two greys, not one. `--sub` is untyped text and stays dim - that recession is
+the look of a typing test, and brightening it would flatten the distinction
+between what you have typed and what you have not. `--label` is everything
+else: the small tracked labels, the hints, the buttons, the ad furniture. It
+clears WCAG AA (4.5:1) in all seven themes, sakura included.
+
+They used to be the same variable, which is what made the chrome fail: the
+labels inherited a colour chosen for untyped words, and three `opacity`
+dimmers on `.hint`, `.ad-label` and `.ad-note` then pushed it further down, to
+as low as 2.17:1. Those dimmers are gone - if something should be quieter now,
+give it its own colour rather than fading a colour that was already at its
+floor.
+
+The automated tier (`@accesslint/core` against the live DOM) reports no
+violations on the default theme. Untyped text is deliberately outside that:
+it sits between 1.77:1 and 3.95:1 depending on the theme.
+
+Every control is at least 24x24px, which is what WCAG 2.2 asks of a target. The
+type is unchanged: the buttons here have no box to grow, so the hit area is
+padded out around them and only the rule under the shortest lengths got wider.
+The one exception is the link inside the sentence in the footer, which is
+exempt as an inline target.
 
 ## Keys
 
@@ -88,12 +117,31 @@ Fonts are OS stacks, not webfonts, so the page still works offline and off a
 `file://` URL.
 
 The motion is deliberately small: the active setting is marked by a rule that
-draws in from the left, a new passage lifts into place, the caret slides and
+slides between the choices, a new passage lifts into place, the caret slides and
 breathes rather than blinking hard, a new word in 1-word mode rises as the last
-is committed, and on the results screen the graph paints itself left to right
-while the numbers shuffle out of random digits. Everything is under 350ms except
-the results reveal, which finishes inside 650ms. `prefers-reduced-motion` turns
-all of it off.
+is committed, the test and results screens crossfade into each other, and on the
+results screen the graph paints itself left to right while the numbers shuffle
+out of random digits. Everything is under 350ms except the results reveal, which
+finishes inside 650ms. `prefers-reduced-motion` turns all of it off.
+
+Two of those are worth knowing about:
+
+- **The rule under the active setting slides**, rather than one rule per button
+  fading in while another fades out. Mode and length are single-select, so there
+  is one rule per group and it travels; the include toggles keep a rule each,
+  because both can be lit at once. This is also why `renderModeBar` reuses its
+  buttons instead of rebuilding the row: a button born with `.active` already on
+  it has no state to animate from, and replacing a focused button drops keyboard
+  focus to `<body>`.
+- **The test and results views crossfade** through
+  `document.startViewTransition()`, sharing one `view-transition-name` so the
+  swap is a single element changing size. Only the entering view used to be
+  animated - the outgoing one went to `display:none` on the spot, which no CSS
+  transition can reach across, so the page collapsed and the new panel lifted
+  into the gap. The `view-in` keyframes are still there for browsers without
+  view transitions, and are switched off by `@supports` where they exist. The
+  swap is skipped entirely under `prefers-reduced-motion`, which the `*` rule in
+  `style.css` cannot reach on its own.
 
 ## Layout
 

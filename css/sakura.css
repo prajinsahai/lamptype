@@ -14,13 +14,15 @@
    ================================================================= */
 
 [data-theme="sakura"] {
+  color-scheme: light;
   --bg:          #FDF7F8;  /* warm off-white, faint pink undertone */
   --sub:         #CDB8BE;  /* untyped text - deliberately recessive */
   --text:        #3B2F35;  /* soft near-black ink, never pure black */
   --caret:       #E58FA6;
   --error:       #C2566E;  /* dusty rose-red */
   --main:        #D4728C;  /* accent */
-  --muted:       #B9A3AA;  /* UI labels */
+  --muted:       #916672;  /* UI labels - lifted to 4.56:1 for WCAG AA */
+  --label:       #916672;
   --sub-alt:     #F5E8EB;  /* chart grid + history cards only */
   --rule:        #F0DEE3;  /* hairline rules */
   --error-extra: #DDA9B5;
@@ -38,13 +40,15 @@
 /* --- night hanami: follows the OS unless pinned to light --- */
 @media (prefers-color-scheme: dark) {
   [data-theme="sakura"]:not([data-mode="light"]) {
+    color-scheme: dark;
     --bg:          #15121A;  /* deep plum-indigo */
     --sub:         #4C4250;
     --text:        #F2E9ED;
     --caret:       #F2A2B8;
     --error:       #D96B84;
     --main:        #E2879E;  /* derived: the brief gives no dark accent */
-    --muted:       #8A7B87;
+    --muted:       #89788f;  /* lifted to 4.54:1 */
+    --label:       #89788f;
     --sub-alt:     #1E1926;
     --rule:        #2A2233;
     --error-extra: #8A4358;
@@ -58,13 +62,15 @@
 
 /* --- night hanami, pinned by the day/night control --- */
 [data-theme="sakura"][data-mode="dark"] {
+  color-scheme: dark;
   --bg:          #15121A;
   --sub:         #4C4250;
   --text:        #F2E9ED;
   --caret:       #F2A2B8;
   --error:       #D96B84;
   --main:        #E2879E;
-  --muted:       #8A7B87;
+  --muted:       #89788f;  /* lifted to 4.54:1 */
+  --label:       #89788f;
   --sub-alt:     #1E1926;
   --rule:        #2A2233;
   --error-extra: #8A4358;

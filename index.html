@@ -155,7 +155,7 @@
       <div class="mode-bar" id="mode-bar">
         <div class="mode-field">
           <span class="field-label">mode</span>
-          <div class="mode-group">
+          <div class="mode-group" data-slider>
             <button type="button" class="mode-btn" data-mode="time">time</button>
             <button type="button" class="mode-btn" data-mode="words">words</button>
             <button type="button" class="mode-btn" data-mode="single">1 word</button>
@@ -164,7 +164,7 @@
 
         <div class="mode-field">
           <span class="field-label" id="length-label">length</span>
-          <div class="mode-group" id="mode-values"></div>
+          <div class="mode-group" id="mode-values" data-slider></div>
         </div>
 
         <div class="mode-field">
@@ -189,7 +189,9 @@
         </div>
       </div>
 
-      <div id="typing-area" class="typing-area">
+      <!-- tabindex="-1" so the skip link above actually lands focus here
+           rather than only moving the scroll position. -->
+      <div id="typing-area" class="typing-area" tabindex="-1">
         <div id="words" class="words">
           <div id="caret" class="caret"></div>
         </div>
@@ -248,7 +250,9 @@
       </div>
 
       <div class="results-chart">
-        <canvas id="res-chart" aria-label="words per minute over time"></canvas>
+        <!-- A canvas has no implicit role, so the label needs one to hang
+             on. Every number the graph draws is also in the row below it. -->
+        <canvas id="res-chart" role="img" aria-label="words per minute over time"></canvas>
       </div>
 
       <div class="results-meta">
@@ -303,9 +307,11 @@
 </div>
 
 <!-- ============================ HISTORY MODAL ============================ -->
-<div id="history-modal" class="modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="history-title">
+<!-- A real <dialog>: showModal() moves focus in, holds Tab inside it,
+     closes on Escape and returns focus where it came from. None of that
+     had to be written, and none of it was there when this was a div. -->
+<dialog id="history-modal" class="modal" aria-labelledby="history-title">
+  <div class="modal-card">
     <div class="modal-head">
       <h2 id="history-title">history</h2>
       <button type="button" class="icon-btn small" data-close aria-label="close">&#10005;</button>
@@ -325,10 +331,13 @@
     </div>
 
     <div class="modal-foot">
-      <button type="button" id="btn-clear-history" class="text-btn danger">clear history</button>
+      <!-- Asks once before wiping. The label is the confirmation, so it
+           has to be announced when it changes under a parked cursor. -->
+      <button type="button" id="btn-clear-history" class="text-btn danger"
+              aria-live="polite">clear history</button>
     </div>
   </div>
-</div>
+</dialog>
 
 <script src="js/words.js"></script>
 <script src="js/stats.js"></script>
