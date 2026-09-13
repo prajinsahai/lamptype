@@ -1546,6 +1546,45 @@
     assert(RV.DEFAULT_DURATION <= 800, 'number reveal is ' + RV.DEFAULT_DURATION + 'ms');
   });
 
+  /* ------------------------------ the room ------------------------------
+     Phase 1: what the room adds on top of Phase 0 - a passage everyone
+     shares for one race and nobody inherits afterwards, and a placing
+     to show at the end of it. */
+
+  check('room: a seeded rebuild does not leak into the next solo test', () => {
+    const e = TT.createEngine();
+    const cfg = { mode: 'words', modeValue: 25, punctuation: false, numbers: false };
+
+    e.reset(Object.assign({}, cfg, { random: N.seedRandom(4242) }));
+    const seeded = e.state.words.join(' ');
+
+    e.reset(Object.assign({}, cfg, { random: N.seedRandom(4242) }));
+    eq(e.state.words.join(' '), seeded, 'the same seed rebuilds the same passage');
+
+    /* main.js passes random: null on every solo rebuild for exactly
+       this reason - the engine merges its config, so a generator left
+       behind would repeat the room's passage forever. */
+    e.reset(Object.assign({}, cfg, { random: null }));
+    const solo = e.state.words.join(' ');
+    e.reset(Object.assign({}, cfg, { random: null }));
+
+    assert(solo !== seeded, 'a solo test repeated the seeded passage');
+    assert(e.state.words.join(' ') !== solo, 'two solo tests gave the same passage');
+  });
+
+  check('placing: the ordinal is right, including the teens', () => {
+    const o = TT.format.ordinal;
+    eq(o(1), '1st');
+    eq(o(2), '2nd');
+    eq(o(3), '3rd');
+    eq(o(4), '4th');
+    eq(o(11), '11th');
+    eq(o(12), '12th');
+    eq(o(13), '13th');
+    eq(o(21), '21st');
+    eq(o(0), '1st', 'there is no zeroth place');
+  });
+
   /* ------------------------------- reporting ------------------------------ */
 
   const rows = document.getElementById('rows');

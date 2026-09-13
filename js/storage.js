@@ -25,7 +25,13 @@ window.TT = window.TT || {};
     THEMES: ['lamp', 'paper', 'ink', 'linen', 'oxide', 'iris', 'sakura'],
     /* Sakura ships light and dark variants; 'auto' follows the OS. */
     COLOR_MODES: ['auto', 'light', 'dark'],
-    HISTORY_LIMIT: 50
+    HISTORY_LIMIT: 50,
+    /* The race server, and the only address this site ever connects to.
+       Empty disables rooms entirely, which is what `file://` gets: a
+       page opened off disk has no origin the server would accept.
+       Whatever goes here must also go in `connect-src` in both
+       `_headers` and `vercel.json`. */
+    ROOM_URL: 'wss://rooms.lamptype.example'
   };
 
   /* What each mode is called on screen, and which setting holds its
@@ -67,7 +73,10 @@ window.TT = window.TT || {};
     punctuation: false,
     numbers: false,
     theme: 'lamp',
-    colorMode: 'auto'
+    colorMode: 'auto',
+    /* Only ever sent when you join a room. The server cleans it again
+       and does not trust this copy. */
+    nick: ''
   };
 
   function read(key) {
@@ -111,6 +120,9 @@ window.TT = window.TT || {};
     if (cfg.COLOR_MODES.indexOf(s.colorMode) === -1) s.colorMode = DEFAULTS.colorMode;
     s.punctuation = !!s.punctuation;
     s.numbers = !!s.numbers;
+    /* Cleaning proper belongs to net.js and to the server; this only
+       stops a hand-edited entry growing without bound. */
+    s.nick = Array.from(String(s.nick == null ? '' : s.nick)).slice(0, 16).join('');
 
     return s;
   }

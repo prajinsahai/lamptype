@@ -11,3 +11,7 @@ desktop.ini
 # Local server / tooling noise
 __pycache__/
 *.log
+
+# wrangler dev state (server/)
+.wrangler/
+node_modules/

@@ -545,6 +545,44 @@ kbd {
   color: var(--label);
 }
 
+/* ================================= room =================================
+   One line above the lane strip: who is here, and the three things you
+   can do about it. Present only while you are in a room. */
+
+.room {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem 1.25rem;
+  margin-top: var(--space-4);
+  font-size: .8125rem;
+  color: var(--label);
+}
+
+.room-nick {
+  width: 9rem;
+  padding: .15rem 0;
+  background: none;
+  border: 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+  color: var(--text);
+  font: inherit;
+}
+.room-nick:disabled { color: var(--label); }
+
+.room-status {
+  flex: 1 1 12rem;
+  min-width: 0;
+  /* Names and standings come off a socket and can be any length. */
+  overflow-wrap: anywhere;
+}
+
+.room-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
 /* ================================= race =================================
    Two hairlines with a dot at the head of each: position along the text
    and nothing else. */

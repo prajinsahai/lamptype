@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>About &mdash; LampType</title>
-<meta name="description" content="What LampType is, how it measures your typing, and why nothing you type ever leaves your browser.">
+<meta name="description" content="What LampType is, how it measures your typing, and what a race sends when you type against someone else.">
 <link rel="canonical" href="https://lamptype.example/about.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LampType">
 <meta property="og:title" content="About &mdash; LampType">
-<meta property="og:description" content="What LampType is, how it measures your typing, and why nothing you type ever leaves your browser.">
+<meta property="og:description" content="What LampType is, how it measures your typing, and what a race sends when you type against someone else.">
 <meta property="og:url" content="https://lamptype.example/about.html">
 <meta property="og:image" content="https://lamptype.example/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -115,11 +115,18 @@
       characters divided by a sliver of a second is arithmetic noise rather than a
       score.</p>
 
-    <h2>Your typing never leaves your browser</h2>
-    <p>Every keystroke is processed on your own machine. Nothing you type is sent
-      anywhere &mdash; not to us, not to anyone. Your results are kept in your
-      browser's local storage so your history and personal bests survive a reload, and
-      you can erase all of it at any time from the history panel.</p>
+    <h2>Typing alone never leaves your browser</h2>
+    <p>Every keystroke is processed on your own machine. Typing on your own &mdash; which
+      is every mode, including the race against the AI opponent &mdash; sends nothing
+      anywhere, not to us and not to anyone. Your results are kept in your browser's
+      local storage so your history and personal bests survive a reload, and you can
+      erase all of it at any time from the history panel.</p>
+    <p>Racing a friend is the exception, because a race needs both of you in the same
+      room. While you are in one, the site sends the name you chose, how far through the
+      passage you are, and your speed and accuracy at the finish. The room is held in
+      memory for as long as somebody is in it and discarded when the last person leaves;
+      the words you actually typed are never sent, and nothing is written to a database.
+      No room, no socket.</p>
     <p>The one thing that does reach a third party is advertising. The
       <a href="privacy.html">privacy policy</a> sets out exactly what that involves.</p>
 

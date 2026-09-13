@@ -73,9 +73,14 @@
     </div>
 
     <div class="callout">
-      <p><strong>The short version.</strong> Nothing you type is ever transmitted. Every
+      <p><strong>The short version.</strong> Typing on your own transmits nothing. Every
         keystroke is processed on your own device, and your results are saved only in
-        your own browser. There are no accounts and no server holding your data.</p>
+        your own browser. There are no accounts and no database holding your data.</p>
+      <p>Racing a friend is the one exception: while you are in a race room, the name you
+        chose, your position in the passage and your final speed and accuracy are sent to
+        the race server so the other racers can see you move. The text you type is not
+        sent, the room exists only in memory, and it is discarded when the last person
+        leaves.</p>
       <p>The exception is advertising. This site carries ads served by Google, and
         Google does set cookies and receive technical data such as your IP address.
         Most of what follows is about that.</p>
@@ -101,7 +106,8 @@
                 the mode used and a timestamp. Personal bests are derived from this list
                 rather than stored separately.</td></tr>
         <tr><td><code>tt:races</code></td>
-            <td>How many races you have finished, used to calibrate the AI opponent.</td></tr>
+            <td>How many races against the AI opponent you have finished, used to
+                calibrate it. Races against other people are not counted here.</td></tr>
       </tbody>
     </table>
     <p>None of this is sent anywhere and none of it identifies you. You can erase all of
@@ -111,7 +117,8 @@
     <h2>What we do not collect</h2>
     <ul>
       <li><strong>The text you type.</strong> It is compared against the target words in
-        your browser and then discarded. It is never uploaded, logged or stored.</li>
+        your browser and then discarded. It is never uploaded, logged or stored &mdash; a
+        race sends a character count, never the characters.</li>
       <li><strong>Accounts.</strong> There is no sign-up, so no name, email or password.</li>
       <li><strong>Analytics.</strong> This site runs no analytics or tracking scripts of
         its own.</li>
@@ -172,8 +179,9 @@
       age is unknown, ad requests are configured to suppress personalised advertising.</p>
 
     <h2>Transfers and retention</h2>
-    <p>Because your results never leave your device there is no transfer of them
-      anywhere. Google operates globally and may process advertising data outside your
+    <p>Your results do not leave your device except during a race, where your name,
+      position and final figures pass through the race server and are discarded with the
+      room. Google operates globally and may process advertising data outside your
       country under its own safeguards, described in the policies linked above. Your
       local data is kept until you delete it; history is capped at the 50 most recent
       results and older entries fall off automatically.</p>
