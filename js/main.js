@@ -63,12 +63,21 @@ window.TT = window.TT || {};
       race: $('race'),
       raceYou: $('race-you'),
       raceAi: $('race-ai'),
+      raceAiLabel: $('race-ai-label'),
       raceYouWpm: $('race-you-wpm'),
       raceAiWpm: $('race-ai-wpm'),
       raceResult: $('race-result'),
       raceOutcome: $('race-outcome'),
       raceDetail: $('race-detail'),
       btnRace: $('btn-race'),
+
+      room: $('room'),
+      roomNick: $('room-nick'),
+      roomStatus: $('room-status'),
+      btnRoom: $('btn-room'),
+      btnRoomReady: $('btn-room-ready'),
+      btnRoomLink: $('btn-room-link'),
+      btnRoomLeave: $('btn-room-leave'),
 
       btnHistory: $('btn-history'),
       btnDayNight: $('btn-daynight'),
@@ -245,29 +254,65 @@ window.TT = window.TT || {};
         opponent: TT.race.createOpponent(wpm),
         total: TT.race.totalChars(engine.state.words),
         opponentWpm: wpm,
-        aiFinished: false
+        rivalFinished: false
       };
 
       ui.setRaceVisible(true);
+      ui.setRaceOpponent('ai');
       ui.setRaceProgress(0, 0);
       ui.setRaceSpeeds(0, wpm);
+    }
+
+    /* True while a room race has been called but the gun has not gone.
+       The passage is on screen to be read, and nothing may be typed into
+       it yet: the clock starts for everybody at the same instant. */
+    function beforeGun() {
+      return !!(race && race.room && room && room.msUntilStart() > 0);
     }
 
     function raceFrame() {
       raceRaf = requestAnimationFrame(raceFrame);
       if (!race) return;
 
-      /* Both racers read the same clock, so dropped frames cannot make
-         the opponent fall behind. */
-      const ai = race.opponent.positionAt(engine.elapsed());
       const you = TT.race.caretPosition(
         engine.state.words, engine.state.typed, engine.state.wordIndex
       );
 
-      ui.setRaceProgress(you / race.total, ai / race.total);
+      let rival = 0;
 
-      if (!race.aiFinished && ai >= race.total) {
-        race.aiFinished = true;
+      if (race.room) {
+        const wait = room ? room.msUntilStart() : 0;
+        if (wait > 0) {
+          ui.setRoomStatus('starting in ' + Math.ceil(wait / 1000));
+          return;
+        }
+        /* The first frame past the gun starts the test, so the run is
+           measured from the same instant for everyone rather than from
+           whenever each person got round to typing. */
+        if (!engine.isRunning() && !engine.isFinished()) {
+          ui.setRoomStatus('go');
+          engine.begin();
+        }
+
+        room.reportPosition(you);
+
+        /* One lane is shown against yours, and it is whoever is actually
+           in front. Their position is read off the shared clock, which is
+           the same discipline the AI opponent follows. */
+        const lead = TT.netMath.leaderAt(room.peers(), room.toRaceSeconds(room.serverNow()));
+        rival = lead.pos;
+        race.rivalCps = lead.peer ? lead.peer.rate() : 0;
+        ui.setRaceOpponent(lead.peer ? lead.peer.nick : 'nobody');
+      } else {
+        /* Both racers read the same clock, so dropped frames cannot make
+           the opponent fall behind. */
+        rival = race.opponent.positionAt(engine.elapsed());
+      }
+
+      ui.setRaceProgress(you / race.total, rival / race.total);
+
+      if (!race.rivalFinished && rival >= race.total) {
+        race.rivalFinished = true;
         ui.markRaceFinished('ai');
       }
     }
@@ -295,24 +340,188 @@ window.TT = window.TT || {};
       restart();
     }
 
-    function restart() {
+    /* `random` is the room's seeded generator, or null for solo play. It
+       is passed on every rebuild rather than only when seeded, because
+       the engine merges its config: a seed left behind would make every
+       later solo test repeat the same passage. */
+    function rebuild(random) {
       clearResultsGuard();
       /* The view must be visible before the engine rebuilds: the renderer
          measures row pitch from the DOM, and a display:none container
          measures as zero. */
       ui.showTest();
-      engine.reset(currentConfig());
+      engine.reset(Object.assign(currentConfig(), { random: random || null }));
       ui.setTyping(false);
       ui.updateLive();
+    }
+
+    function restart() {
+      /* The room owns the passage once a race has been called: a local
+         restart would put you on words nobody else is typing. */
+      if (race && race.room) return;
+      rebuild(null);
       setupRace();
       focusInput();
+    }
+
+    /* ------------------------------- room -------------------------------
+       A room is a socket, a roster and a seed. What it feeds the race
+       loop satisfies the shape js/race.js already returns, so the engine,
+       the renderer and the stats never learn that it exists. */
+
+    let room = null;
+
+    function setRoomHash(id) {
+      const url = window.location.pathname + window.location.search + (id ? '#r=' + id : '');
+      try {
+        window.history.replaceState(null, '', url);
+      } catch (err) {
+        /* Some browsers refuse replaceState on a file:// page. */
+        window.location.hash = id ? 'r=' + id : '';
+      }
+    }
+
+    function openRoom(id) {
+      if (room) return;
+      if (!TT.config.ROOM_URL) {
+        ui.setRoomVisible(true);
+        ui.setRoomStatus('no race server is configured for this site');
+        return;
+      }
+
+      /* One opponent at a time: the AI has no seat in a room. */
+      raceMode = false;
+      setupRace();
+
+      room = TT.createRoom({
+        url: TT.config.ROOM_URL,
+        id,
+        nick: settings.nick,
+        count: settings.wordValue,
+        punctuation: settings.punctuation,
+        numbers: settings.numbers
+      });
+
+      ui.setRoomVisible(true);
+      ui.setRoomNickEditable(false);
+      ui.setRoomStatus('connecting');
+
+      room.on('open', () => ui.setRoomStatus('waiting for someone to join'));
+
+      room.on('room', (state) => {
+        /* Mid-race the line is the countdown, and afterwards it is the
+           standings - which stay up until somebody presses ready and the
+           roster becomes the useful thing to show again. */
+        if (race && race.room) return;
+        if (state.status === 'over' && !state.players.some((p) => p.ready)) return;
+        if (state.players.length < 2) {
+          ui.setRoomStatus('waiting for someone to join - send them the link');
+          return;
+        }
+        ui.setRoomStatus(state.players
+          .map((p) => p.nick + (p.ready ? ' (ready)' : ''))
+          .join(', ') + ' - press ready');
+      });
+
+      room.on('go', startRoomRace);
+      room.on('over', (msg) => showStandings(msg.standings));
+      room.on('error', (err) => ui.setRoomStatus(err.message));
+
+      room.on('closed', () => {
+        room = null;
+        race = null;
+        stopRaceLoop();
+        ui.setRoomNickEditable(true);
+        ui.setRoomStatus('disconnected - the link still works');
+      });
+
+      room.connect();
+    }
+
+    function leaveRoom() {
+      if (room) room.leave();
+      room = null;
+      race = null;
+      stopRaceLoop();
+      setRoomHash('');
+      ui.setRoomVisible(false);
+      ui.setRoomStatus('');
+      ui.setRoomNickEditable(true);
+      ui.setRaceVisible(false);
+      restart();
+    }
+
+    /* The gun has been called. Everyone in the room builds the same
+       passage from the one seed, and nobody types until the start stamp
+       the server put on it. */
+    function startRoomRace(cfg) {
+      /* A race needs a finish line, and the room settles its length and
+         its toggles. Move the mode bar to match rather than let it show
+         something other than what is running. */
+      settings = Object.assign({}, settings, {
+        mode: 'words',
+        wordValue: cfg.count,
+        punctuation: cfg.punctuation,
+        numbers: cfg.numbers
+      });
+      TT.storage.saveSettings(settings);
+      ui.renderModeBar();
+
+      raceMode = false;
+      stopRaceLoop();
+      rebuild(TT.netMath.seedRandom(cfg.seed));
+
+      const total = TT.race.totalChars(engine.state.words);
+      room.beginRace(total);
+
+      race = { room: true, total, rivalFinished: false, rivalCps: 0 };
+      ui.setRaceVisible(true);
+      ui.setRaceOpponent('rival');
+      ui.setRaceProgress(0, 0);
+      ui.setRaceSpeeds(0, 0);
+      startRaceLoop();
+      focusInput();
+    }
+
+    /* The server's ordering is the one that counts: it stamped every
+       finish off a single clock, while a rival's last message may still
+       have been on the wire when the local guess was made. */
+    function showStandings(standings) {
+      /* The room moved on while you were still typing. The race is over
+         either way, so show what you did rather than leave you racing
+         nobody - and do it first, so the placing below lands on a
+         results screen that is already up. */
+      if (race && race.room) engine.finish();
+
+      const me = room ? room.me() : '';
+      let mine = null;
+
+      for (let i = 0; i < standings.length; i++) {
+        if (standings[i].id === me) mine = standings[i];
+      }
+
+      ui.setRoomStatus(standings
+        .map((p) => p.place + '. ' + p.nick + ' ' + TT.format.asWpm(p.wpm))
+        .join('   ') + ' - press ready to go again');
+
+      if (mine && !dom.viewResults.hidden) {
+        ui.renderRaceOutcome({
+          place: mine.place,
+          players: standings.length,
+          won: mine.place === 1
+        });
+      }
     }
 
     /* ------------------------------ engine ------------------------------ */
 
     engine.on('tick', () => {
       ui.updateLive();
-      if (race) ui.setRaceSpeeds(engine.liveStats().wpm, race.opponentWpm);
+      if (!race) return;
+      /* A rival's speed is the rate their last two updates implied; the
+         AI's is the figure it was built with. */
+      const rivalWpm = race.room ? (race.rivalCps * 60) / 5 : race.opponentWpm;
+      ui.setRaceSpeeds(engine.liveStats().wpm, rivalWpm);
     });
 
     engine.on('start', () => {
@@ -352,12 +561,25 @@ window.TT = window.TT || {};
       if (race) {
         stopRaceLoop();
         ui.markRaceFinished('you');
-        const opponentAt = race.opponent.positionAt(engine.elapsed());
-        raceOutcome = { won: opponentAt < race.total, opponentWpm: race.opponentWpm };
 
-        /* Only a real race counts toward calibration, otherwise a string
-           of instant finishes would inflate the difficulty ramp. */
-        if (recorded) TT.storage.bumpRaceCount();
+        if (race.room) {
+          room.reportFinish(result);
+          /* Everyone who has already crossed is ahead of you and nobody
+             who has not can be. The server's standings arrive a moment
+             later and rewrite this line. */
+          const peers = room.peers();
+          const place = TT.netMath.placeOf(room.toRaceSeconds(room.serverNow()), peers);
+          raceOutcome = { place, players: peers.length + 1, won: place === 1 };
+          ui.setRoomStatus('waiting for the others');
+        } else {
+          const opponentAt = race.opponent.positionAt(engine.elapsed());
+          raceOutcome = { won: opponentAt < race.total, opponentWpm: race.opponentWpm };
+
+          /* Only a real race counts toward calibration, otherwise a string
+             of instant finishes would inflate the difficulty ramp. A race
+             against people is not one the AI ran, so it never counts. */
+          if (recorded) TT.storage.bumpRaceCount();
+        }
         race = null;
       }
 
@@ -368,8 +590,9 @@ window.TT = window.TT || {};
         delete stored.samples;
         if (raceOutcome) {
           stored.race = true;
-          stored.opponentWpm = raceOutcome.opponentWpm;
           stored.won = raceOutcome.won;
+          if (raceOutcome.players) stored.players = raceOutcome.players;
+          else stored.opponentWpm = raceOutcome.opponentWpm;
         }
         TT.storage.addResult(stored);
       }
@@ -393,6 +616,12 @@ window.TT = window.TT || {};
 
     dom.input.addEventListener('keydown', (event) => {
       const key = event.key;
+
+      /* The passage is up so it can be read; the race has not started. */
+      if (beforeGun() && key !== 'Tab') {
+        event.preventDefault();
+        return;
+      }
 
       /* Shift+Tab is the way out of the typing area.
          Tab alone restarts the test, which means the typing area would
@@ -487,6 +716,7 @@ window.TT = window.TT || {};
 
       event.preventDefault();
       focusInput();
+      if (beforeGun()) return;
       if (event.key === ' ') engine.typeSpace();
       else engine.typeChar(event.key);
     });
@@ -497,6 +727,45 @@ window.TT = window.TT || {};
     dom.btnNext.addEventListener('click', restart);
 
     dom.btnRace.addEventListener('click', toggleRace);
+
+    /* One button for both directions: a room you are not in is one you
+       can open, and a room you are in is one you can leave. */
+    dom.btnRoom.addEventListener('click', () => {
+      if (room || !dom.room.hidden) {
+        leaveRoom();
+        return;
+      }
+      const id = TT.netMath.roomIdFromHash(window.location.hash) || TT.netMath.makeRoomId();
+      setRoomHash(id);
+      openRoom(id);
+    });
+
+    dom.btnRoomReady.addEventListener('click', () => {
+      if (room) room.setReady(true);
+    });
+
+    dom.btnRoomLeave.addEventListener('click', leaveRoom);
+
+    dom.btnRoomLink.addEventListener('click', () => {
+      const link = window.location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(
+          () => ui.setRoomStatus('link copied'),
+          /* Clipboard access can be refused; showing the link is the
+             fallback that always works. */
+          () => ui.setRoomStatus(link)
+        );
+        return;
+      }
+      ui.setRoomStatus(link);
+    });
+
+    /* The name travels with the join, so it is read when a room opens
+       rather than watched for changes. */
+    dom.roomNick.addEventListener('change', () => {
+      settings = Object.assign({}, settings, { nick: dom.roomNick.value });
+      TT.storage.saveSettings(settings);
+    });
 
     dom.btnHistory.addEventListener('click', () => ui.openHistory());
 
@@ -552,6 +821,11 @@ window.TT = window.TT || {};
     ui.renderHistory();
     renderer.setFocused(false);
     restart();
+
+    dom.roomNick.value = settings.nick;
+    /* Opening someone's link is the whole of "joining a room". */
+    const linkedRoom = TT.netMath.roomIdFromHash(window.location.hash);
+    if (linkedRoom) openRoom(linkedRoom);
 
     /* Font swaps change the row pitch, so re-measure once they settle. */
     if (document.fonts && document.fonts.ready) {

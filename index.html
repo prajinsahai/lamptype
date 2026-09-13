@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LampType">
 <meta property="og:title" content="LampType — a typing test with a lava lamp">
-<meta property="og:description" content="A quiet typing test with a lava lamp backdrop that answers your keystrokes. Nothing you type ever leaves your browser.">
+<meta property="og:description" content="A quiet typing test with a lava lamp backdrop that answers your keystrokes. Solo play never leaves your browser.">
 <meta property="og:url" content="https://lamptype.example/">
 <meta property="og:image" content="https://lamptype.example/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -176,6 +176,20 @@
         </div>
       </div>
 
+      <!-- The room bar only appears once you are in a room. Solo play never
+           shows it and never opens a socket. -->
+      <div class="room" id="room" hidden>
+        <input id="room-nick" class="room-nick" type="text" maxlength="16"
+               autocomplete="off" spellcheck="false" placeholder="your name"
+               aria-label="your name in the race">
+        <span class="room-status" id="room-status" role="status"></span>
+        <span class="room-actions">
+          <button type="button" id="btn-room-ready" class="text-btn">ready</button>
+          <button type="button" id="btn-room-link" class="text-btn">copy link</button>
+          <button type="button" id="btn-room-leave" class="text-btn">leave</button>
+        </span>
+      </div>
+
       <div class="race" id="race" hidden aria-label="race progress">
         <div class="race-lane">
           <span class="race-label">you</span>
@@ -183,7 +197,7 @@
           <span class="race-wpm" id="race-you-wpm"></span>
         </div>
         <div class="race-lane opponent">
-          <span class="race-label">ai</span>
+          <span class="race-label" id="race-ai-label">ai</span>
           <div class="race-track"><div class="race-fill" id="race-ai"></div></div>
           <span class="race-wpm" id="race-ai-wpm"></span>
         </div>
@@ -213,6 +227,7 @@
         </span>
         <span class="live-spacer"></span>
         <span class="actions">
+          <button type="button" id="btn-room" class="text-btn">race a friend</button>
           <button type="button" id="btn-race" class="text-btn race-btn">start race</button>
           <button type="button" id="btn-restart" class="icon-btn" title="restart test (tab)" aria-label="restart test">&#8635;</button>
         </span>
@@ -347,6 +362,7 @@
 <script src="js/lamp.js"></script>
 <script src="js/petals.js"></script>
 <script src="js/race.js"></script>
+<script src="js/net.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>

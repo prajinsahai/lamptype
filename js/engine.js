@@ -375,6 +375,11 @@ window.TT = window.TT || {};
       off,
       state,
       reset,
+      /* A room race starts on the gun rather than on your first
+         keystroke, so the clock is the same one everybody else is
+         being measured against. Solo play never calls this: typing
+         starts it. */
+      begin,
       typeChar,
       typeSpace,
       backspace,

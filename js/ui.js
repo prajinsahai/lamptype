@@ -50,6 +50,15 @@ window.TT = window.TT || {};
   const asWpm = (n) => String(Math.round(n));
   const asPct = (n) => Math.round(n) + '%';
 
+  /* 1st, 2nd, 3rd, 4th - and 11th/12th/13th, which are the exceptions
+     that catch every naive version of this. */
+  function ordinal(n) {
+    const i = Math.max(1, Math.floor(n) || 1);
+    const tens = i % 100;
+    if (tens >= 11 && tens <= 13) return i + 'th';
+    return i + (['th', 'st', 'nd', 'rd'][i % 10] || 'th');
+  }
+
   function createUI(dom, engine, hooks) {
     let lastResult = null;
     /* Sakura drops the running wpm readout entirely. */
@@ -251,7 +260,12 @@ window.TT = window.TT || {};
         asPct(result.accuracy) + ' accuracy,',
         formatDuration(result.duration) + '.'
       ];
-      if (raceOutcome) parts.push(raceOutcome.won ? 'You won the race.' : 'The AI won the race.');
+      if (raceOutcome && raceOutcome.players) {
+        parts.push('You finished ' + ordinal(raceOutcome.place) +
+          ' of ' + raceOutcome.players + '.');
+      } else if (raceOutcome) {
+        parts.push(raceOutcome.won ? 'You won the race.' : 'The AI won the race.');
+      }
       if (isPersonalBest) parts.push('New personal best.');
       if (recorded === false) parts.push('Too short to record.');
       parts.push('Press tab for a new test.');
@@ -320,6 +334,39 @@ window.TT = window.TT || {};
       dom.raceAiWpm.textContent = opponentWpm > 0 ? asWpm(opponentWpm) : '';
     }
 
+    /* Who the second lane is. The AI when you are alone; whoever is
+       leading the room when you are not. */
+    function setRaceOpponent(label) {
+      const text = label || 'ai';
+      /* Written from the race loop, so it is compared before it is set:
+         an unchanged textContent write still costs a layout. */
+      if (dom.raceAiLabel.textContent !== text) dom.raceAiLabel.textContent = text;
+    }
+
+    /* ------------------------------- room -------------------------------
+       Everything here is textContent: a nickname arriving over a socket
+       is a stranger's string, and the CSP argument in _headers depends
+       on nothing in js/ ever using innerHTML. */
+
+    function setRoomVisible(visible) {
+      dom.room.hidden = !visible;
+      dom.btnRoom.textContent = visible ? 'leave room' : 'race a friend';
+      /* One race at a time: the AI opponent has no place in a room. */
+      dom.btnRace.disabled = !!visible;
+    }
+
+    function setRoomStatus(text) {
+      const next = text || '';
+      /* The countdown writes this every frame with the same second. */
+      if (dom.roomStatus.textContent !== next) dom.roomStatus.textContent = next;
+    }
+
+    /* The name travels with the join, so it cannot change under a
+       connection that has already announced it. */
+    function setRoomNickEditable(editable) {
+      dom.roomNick.disabled = !editable;
+    }
+
     /* Marks whichever lane has reached the end. */
     function markRaceFinished(who) {
       const fill = who === 'ai' ? dom.raceAi : dom.raceYou;
@@ -346,6 +393,29 @@ window.TT = window.TT || {};
       document.startViewTransition(mutate);
     }
 
+    /* Two kinds of race end up here. Against the AI there is a winner
+       and a loser; in a room there is a placing, which is the same
+       sentence with more people in it. */
+    function renderRaceOutcome(raceOutcome) {
+      if (!raceOutcome) {
+        dom.raceResult.hidden = true;
+        return;
+      }
+
+      dom.raceResult.hidden = false;
+      dom.raceResult.classList.toggle('lost', !raceOutcome.won);
+
+      if (raceOutcome.players) {
+        dom.raceOutcome.textContent = ordinal(raceOutcome.place);
+        dom.raceDetail.textContent = 'of ' + raceOutcome.players +
+          (raceOutcome.players === 1 ? ' racer' : ' racers');
+        return;
+      }
+
+      dom.raceOutcome.textContent = raceOutcome.won ? 'you won' : 'the ai won';
+      dom.raceDetail.textContent = 'opponent ' + asWpm(raceOutcome.opponentWpm) + ' wpm';
+    }
+
     function showResults(result, isPersonalBest, recorded, raceOutcome) {
       lastResult = result;
       const c = result.chars;
@@ -366,15 +436,7 @@ window.TT = window.TT || {};
         dom.resPb.hidden = !isPersonalBest;
         dom.resNote.hidden = recorded !== false;
 
-        if (raceOutcome) {
-          dom.raceResult.hidden = false;
-          dom.raceResult.classList.toggle('lost', !raceOutcome.won);
-          dom.raceOutcome.textContent = raceOutcome.won ? 'you won' : 'the ai won';
-          dom.raceDetail.textContent =
-            'opponent ' + asWpm(raceOutcome.opponentWpm) + ' wpm';
-        } else {
-          dom.raceResult.hidden = true;
-        }
+        renderRaceOutcome(raceOutcome);
 
         dom.viewTest.hidden = true;
         dom.viewResults.hidden = false;
@@ -521,7 +583,12 @@ window.TT = window.TT || {};
       setRaceVisible,
       setRaceProgress,
       setRaceSpeeds,
+      setRaceOpponent,
       markRaceFinished,
+      renderRaceOutcome,
+      setRoomVisible,
+      setRoomStatus,
+      setRoomNickEditable,
       setTyping,
       applyTheme,
       applyColorMode,
@@ -537,5 +604,5 @@ window.TT = window.TT || {};
 
   TT.createUI = createUI;
   TT.createGuard = createGuard;
-  TT.format = { formatDuration, formatDate, asWpm, asPct };
+  TT.format = { formatDuration, formatDate, asWpm, asPct, ordinal };
 })(window.TT);

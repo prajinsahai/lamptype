@@ -33,8 +33,8 @@ or renaming a module means editing both, or the tests silently stop covering it.
 
 Exports: `TT.words`, `TT.stats`, `TT.config` / `TT.storage`, `TT.chart` /
 `TT.chartMath`, `TT.reveal`, `TT.createLamp` / `TT.lampMath`, `TT.createPetals` /
-`TT.petalMath`, `TT.race`, `TT.createEngine`, `TT.createRenderer`, `TT.createUI` /
-`TT.createGuard` / `TT.format`.
+`TT.petalMath`, `TT.race`, `TT.netMath` / `TT.createRoom`, `TT.createEngine`,
+`TT.createRenderer`, `TT.createUI` / `TT.createGuard` / `TT.format`.
 
 The flow is: `main.js` boots, grabs the DOM, and wires an engine to a renderer and
 a ui. `engine.js` is a state machine that emits `rebuild | append | start | key |
@@ -55,7 +55,8 @@ except through its own methods.
 - **`textContent` only.** No `innerHTML` with dynamic data anywhere in `js/`. The
   shipped CSP allows `'unsafe-inline'` for AdSense and is only defensible because
   of this. Re-audit `_headers` / `vercel.json` if it changes.
-- **Offline and `file://` must keep working.** No webfonts, no CDNs, no fetch, no
+- **Offline and `file://` must keep working.** Solo play opens no socket; only a
+  race room does, and only after you join one. No webfonts, no CDNs, no fetch, no
   dependencies. Font stacks name preferred faces first and fall back to OS fonts.
 - **`prefers-reduced-motion` and `visibilitychange`.** Both canvas modules
   (`lamp.js`, `petals.js`) start/stop on tab visibility and on theme change, and
@@ -67,6 +68,11 @@ except through its own methods.
 lengths, themes and colour modes; `storage.js` validates persisted settings
 against it on load. A new mode is one entry in the `MODES` table plus its values
 array — not a new branch in `main.js`.
+
+`TT.config.ROOM_URL` is the race server, and the only address the site ever
+connects to. Empty disables multiplayer; whatever is set must also appear in
+`connect-src` in **both** `_headers` and `vercel.json`, and in `ALLOWED_ORIGINS`
+in `server/wrangler.toml` the other way round.
 
 Themes are CSS-variable blocks in `css/themes.css`, selected by `data-theme` on
 `<html>` via `ui.applyTheme()`. Two greys, deliberately: `--sub` is untyped text

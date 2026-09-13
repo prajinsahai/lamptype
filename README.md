@@ -3,7 +3,9 @@
 A quiet typing test with a lava lamp behind it. The lamp drifts on its own and
 answers your keystrokes; everything else on the page stays out of the way.
 
-No build step, no dependencies, no network calls.
+No build step, no dependencies, and no network calls unless you race another
+person - that is the only thing here that talks to a server, and it is a
+separate optional deploy (see `server/`).
 
 ## Run it
 
@@ -26,7 +28,8 @@ python -m http.server 8000 --directory .
   a three-line view that scrolls as you go.
 - **Results** - WPM, raw, accuracy, consistency and a character breakdown, with a
   WPM-over-time chart that draws itself in and numbers that shuffle into place.
-- **Racing** - a 1v1 against an AI opponent that calibrates to your speed.
+- **Racing** - a 1v1 against an AI opponent that calibrates to your speed, or
+  against other people in a room you share by link.
 - **The lava lamp** - the default backdrop, and it reacts to every keystroke.
   See below.
 - **Themes** - lava lamp (default), paper, ink, linen, oxide, iris, and sakura
@@ -165,6 +168,7 @@ js/reveal.js    the results-screen number shuffle
 js/lamp.js      the lava lamp canvas (lamp theme only)
 js/petals.js    the falling-petal canvas (sakura only)
 js/race.js      the AI opponent: speed model and position
+js/net.js       the shared race: seeded passages, clock offset, remote lanes
 js/engine.js    typing state machine (no DOM)
 js/render.js    word painting, caret, line scroll
 js/ui.js        mode bar, results screen, history modal
@@ -181,8 +185,8 @@ LICENSE                 MIT, plus third-party provenance
 favicon.ico/.svg, apple-touch-icon.png, icon-*.png, og-image.png
 ```
 
-`js/engine.js` and `js/stats.js` never touch the DOM, which is what lets
-`tests.html` drive them directly.
+`js/engine.js`, `js/net.js` and `js/stats.js` never touch the DOM, which is
+what lets `tests.html` drive them directly.
 
 ## Racing
 
@@ -241,6 +245,41 @@ at the finish, not by trusting a flag the render loop may never have set.
 
 The sine term is what stops the opponent reading as a metronome: it drifts
 around its target speed the way a person does.
+
+### Racing other people
+
+"Race a friend" puts a room id in the URL. Whoever opens that link lands in the
+same room, and when everybody presses ready the server counts three seconds down
+and fires the gun.
+
+The opponent lane is the same one the AI uses, because a remote typist satisfies
+the same contract - `positionAt(elapsedSeconds)`. Updates arrive about ten times
+a second and the lane extrapolates between them in closed form, so a dropped
+frame or a late packet changes nothing about where anybody is. A lane that stops
+hearing from its typist coasts for two seconds and then stops, which is what
+keeps a dead connection from gliding across the finish line.
+
+Three things make the race the same race for everyone:
+
+- **One passage.** The server picks a seed; every browser feeds it to the same
+  generator and builds an identical word list. The words themselves never cross
+  the wire.
+- **One clock.** An NTP-style exchange on the same socket gives each browser its
+  offset from the server's clock, the server stamps the start, and from then on
+  everyone measures the race from the same instant. `performance.now()` is never
+  compared across machines - its origin is the moment that tab opened.
+- **One gun.** Nothing can be typed until the start stamp passes, and the test
+  starts then rather than on your first keystroke, so the run is measured from
+  the same instant for everybody.
+
+Only your name, your position in the passage and your final speed and accuracy
+are sent. The text you type is not, the room lives in memory, and it is
+discarded when the last person leaves. Multiplayer races do not count toward the
+AI opponent's calibration: its ramp is meant to track races it actually ran.
+
+The server is the only part of LampType that is not a static file, it is a
+separate deploy, and the site works with it switched off - solo play never opens
+a socket, so `file://` is unaffected. See `server/README.md`.
 
 
 ## The lava lamp
@@ -401,6 +440,7 @@ grep -rn "TODO-\|lamptype.example\|pub-0000000000000000" .
 | Placeholder | Where | What it needs |
 |---|---|---|
 | `lamptype.example` | every page's canonical/OG tags, `sitemap.xml`, `robots.txt`, `security.txt` | Your real domain |
+| `rooms.lamptype.example` | `TT.config.ROOM_URL` in `js/storage.js`, `connect-src` in `_headers` **and** `vercel.json`, `ALLOWED_ORIGINS` in `server/wrangler.toml` | Your deployed race server, or leave `ROOM_URL` empty to ship without multiplayer |
 | `TODO-SUPPORT-EMAIL` | `support.html`, `privacy.html`, `security.txt` | An address that reaches you |
 | `TODO-PUBLISHER-NAME` | `privacy.html`, `terms.html`, `LICENSE` | Who operates the site |
 | `TODO-EFFECTIVE-DATE` | `privacy.html`, `terms.html` | The date you publish |
